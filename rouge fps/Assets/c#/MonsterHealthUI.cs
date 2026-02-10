@@ -1,120 +1,169 @@
 ﻿using UnityEngine;
 
-public class MonsterHealth : MonoBehaviour, IDamageableEx
+public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamageableArmorEx
 {
-    public float maxHP = 100f;
-    public float hp = 100f;
+    [Header("Health")]
+    [Min(1f)] public float maxHp = 100f;
+    [Min(0f)] public float hp = 100f;
 
-    public bool IsDead => hp <= 0f;
+    [Header("Hit UI")]
+    public bool autoFindHitUI = true;
 
     private HitFeedbackUI _hitUI;
+    private bool _didDie;
+
+    // Last-hit tracking (integrated)
+    private CameraGunChannel _lastHitSource;
+    private float _lastHitTime;
+
+    public CameraGunChannel LastHitSource => _lastHitSource;
+    public float LastHitTime => _lastHitTime;
+
+    public bool IsDead => hp <= 0.0001f;
 
     private void Awake()
     {
-        hp = Mathf.Clamp(hp <= 0 ? maxHP : hp, 0f, maxHP);
+        if (maxHp < 1f) maxHp = 1f;
+        hp = Mathf.Clamp(hp, 0f, maxHp);
 
+        if (autoFindHitUI)
+            TryResolveHitUI();
+    }
+
+    private void OnEnable()
+    {
+        CombatEventHub.OnHit += HandleHitEvent;
+    }
+
+    private void OnDisable()
+    {
+        CombatEventHub.OnHit -= HandleHitEvent;
+    }
+
+    private void TryResolveHitUI()
+    {
         _hitUI = HitFeedbackUI.Instance;
         if (_hitUI == null)
             _hitUI = FindFirstObjectByType<HitFeedbackUI>();
     }
 
-    public void TakeDamage(float amount)
+    private void HandleHitEvent(CombatEventHub.HitEvent e)
     {
-        if (amount <= 0f || IsDead) return;
-        hp = Mathf.Max(0f, hp - amount);
-    }
+        if (IsDead) return;
+        if (e.target == null) return;
 
-    public void TakeDamage(DamageInfo info, ArmorHitInfo armorInfo)
-    {
-        if (info.damage <= 0f || IsDead) return;
-
-        var armor = GetComponent<EnemyArmor>();
-        if (armor == null) armor = GetComponentInParent<EnemyArmor>();
-
-        if (armor == null || !armor.HasArmor)
+        // Most of your pipeline sets target to MonsterHealth.gameObject
+        if (e.target == gameObject)
         {
-            TakeDamage(info);
+            if (e.source != null)
+            {
+                _lastHitSource = e.source;
+                _lastHitTime = Time.time;
+            }
             return;
         }
 
-        float total = Mathf.Max(0f, info.damage);
-
-        float pierce = Mathf.Clamp01(armorInfo.piercePercent) * total + Mathf.Max(0f, armorInfo.pierceFlat);
-        pierce = Mathf.Clamp(pierce, 0f, total);
-
-        float normal = Mathf.Max(0f, total - pierce);
-
-        float armorDmg = normal * Mathf.Max(0f, armorInfo.armorDamageMultiplier);
-
-        float armorTaken = armor.DamageArmor(armorDmg);
-
-        if (armorTaken > 0f)
+        // Fallback: if someone raised hit with a child object as target
+        if (e.target.transform != null && e.target.transform.IsChildOf(transform))
         {
-            float extraShatter = Mathf.Max(0f, armorInfo.shatterFlat) + Mathf.Max(0f, armorInfo.shatterPercentOfArmorDamage) * armorDmg;
-            if (extraShatter > 0f && armor.HasArmor)
-                armor.DamageArmor(extraShatter);
-        }
-
-        float mult = Mathf.Max(0.0001f, armorInfo.armorDamageMultiplier);
-        float normalAbsorbedEquivalent = armorTaken / mult;
-        float normalSpillToHP = Mathf.Max(0f, normal - normalAbsorbedEquivalent);
-
-        float hpDamage = pierce + normalSpillToHP;
-
-        if (hpDamage > 0f)
-        {
-            var hpInfo = info;
-            hpInfo.damage = hpDamage;
-            TakeDamage(hpInfo);
+            if (e.source != null)
+            {
+                _lastHitSource = e.source;
+                _lastHitTime = Time.time;
+            }
         }
     }
 
+    // Required by IDamageable
+    public void TakeDamage(float damage)
+    {
+        TakeDamage(new DamageInfo
+        {
+            damage = damage,
+            source = null,
+            isHeadshot = false,
+            hitPoint = transform.position,
+            hitCollider = null,
+            flags = DamageFlags.SkipHitEvent
+        });
+    }
+
+    /// <summary>
+    /// Direct HP damage path (DOT/burn/environment/etc.)
+    /// - Does NOT touch armor
+    /// - Does NOT use vulnerable window multiplier
+    /// </summary>
     public void TakeDamage(DamageInfo info)
     {
         if (info.damage <= 0f || IsDead) return;
 
         hp = Mathf.Max(0f, hp - info.damage);
 
-        if ((info.flags & DamageFlags.SkipHitEvent) != 0)
+        if ((info.flags & DamageFlags.SkipHitEvent) == 0 && info.source != null)
         {
-            if (info.source != null)
-            {
-                if (_hitUI == null)
-                {
-                    _hitUI = HitFeedbackUI.Instance;
-                    if (_hitUI == null)
-                        _hitUI = FindFirstObjectByType<HitFeedbackUI>();
-                }
+            if (_hitUI == null && autoFindHitUI) TryResolveHitUI();
+            if (_hitUI != null) _hitUI.ShowHit(info.isHeadshot);
+        }
 
-                if (_hitUI != null)
-                {
-                    _hitUI.ShowHit(info.isHeadshot);
-                }
+        TryRaiseKill(info.source);
+    }
+
+    /// <summary>
+    /// OnHit / ApplyHit path:
+    /// - Damage hits armor first
+    /// - Overflow can hit HP
+    /// - Vulnerable window multiplier applies ONLY to overflow-to-HP
+    /// </summary>
+    public void TakeDamage(DamageInfo info, ArmorHitInfo armorInfo)
+    {
+        if (info.damage <= 0f || IsDead) return;
+
+        float damage = info.damage;
+        float overflowDamage = damage;
+
+        // Armor is only used for hit-based damage
+        EnemyArmor armor = GetComponentInParent<EnemyArmor>();
+
+        if (armor != null && armor.HasArmor)
+        {
+            float armorTaken = armor.DamageArmor(damage);
+            overflowDamage = damage - armorTaken;
+        }
+
+        if (overflowDamage > 0f)
+        {
+            float hpDamage = overflowDamage;
+
+            // Only amplify overflow HP damage during vulnerable window
+            if (armor != null && armor.InVulnerableWindow)
+            {
+                hpDamage *= armor.HpDamageMultiplier;
             }
+
+            hp = Mathf.Max(0f, hp - hpDamage);
         }
 
-        if ((info.flags & DamageFlags.SkipHitEvent) == 0)
+        if ((info.flags & DamageFlags.SkipHitEvent) == 0 && info.source != null)
         {
-            CombatEventHub.RaiseHit(new CombatEventHub.HitEvent
-            {
-                source = info.source,
-                target = gameObject,
-                hitCollider = info.hitCollider,
-                hitPoint = info.hitPoint,
-                damage = info.damage,
-                isHeadshot = info.isHeadshot,
-                time = Time.time
-            });
+            if (_hitUI == null && autoFindHitUI) TryResolveHitUI();
+            if (_hitUI != null) _hitUI.ShowHit(info.isHeadshot);
         }
 
-        if (IsDead)
+        TryRaiseKill(info.source);
+    }
+
+    private void TryRaiseKill(CameraGunChannel source)
+    {
+        if (_didDie) return;
+        if (!IsDead) return;
+
+        _didDie = true;
+
+        CombatEventHub.RaiseKill(new CombatEventHub.KillEvent
         {
-            CombatEventHub.RaiseKill(new CombatEventHub.KillEvent
-            {
-                source = info.source,
-                target = gameObject,
-                time = Time.time
-            });
-        }
+            source = source,
+            target = gameObject,
+            time = Time.time
+        });
     }
 }
