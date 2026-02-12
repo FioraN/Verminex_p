@@ -217,6 +217,7 @@ public class CameraGunChannel : MonoBehaviour
         {
             hitDamage.source = this;
             hitDamage.baseDamage = baseDamage; // 建议加上：让trigger子弹伤害跟枪一致
+            hitDamage.Init(baseDamage, this);
         }
 
 
@@ -239,6 +240,30 @@ public class CameraGunChannel : MonoBehaviour
         });
     }
 
+    public void FireBonusPellets(int pellets)
+    {
+        // Bonus shots should not consume cooldown / trigger OnFire again.
+        // They reuse the current spread sampling and ballistic mode.
+        if (!HasValidSetup()) return;
+        if (pellets <= 0) return;
+
+        bool isShotgun = (shotType == ShotType.Shotgun);
+
+        for (int i = 0; i < pellets; i++)
+        {
+            Vector3 dir = spread.GetDirection(
+                firePoint.forward,
+                firePoint.right,
+                firePoint.up,
+                isShotgun
+            );
+
+            if (ballisticsMode == BallisticsMode.Hitscan)
+                FireHitscan(dir);
+            else
+                FireProjectile(dir);
+        }
+    }
 
     private void AutoAssignIfSafe()
     {
