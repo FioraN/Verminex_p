@@ -1,66 +1,56 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Perk：子弹命中敌人后触发小范围爆炸
-/// - 直击伤害：由原有 DamageResolver/子弹系统结算（本 Perk 不改直击）
-/// - 爆炸伤害：对半径内敌人造成较小伤害
-/// - 爆炸伤害带 SkipHitEvent：避免“爆炸再次触发命中类 Perk”造成递归/无限触发
-/// - VFX：触发爆炸时在爆炸中心生成一个特效，可按半径缩放
-/// </summary>
-public sealed class Perk_ExplosionOnHit : MonoBehaviour
+public sealed class Perk_ExplosiveImpactOnly : MonoBehaviour
 {
-    [Header("爆炸参数")]
+    [Header("Explosion")]
     [Min(0.01f)]
-    [Tooltip("爆炸半径（x）")]
-    public float radius = 2.5f;
+    public float radius = 3.5f;
 
     [Min(0f)]
-    [Tooltip("爆炸伤害 = 命中事件伤害 * 倍率 + 平伤加成")]
-    public float damageMultiplier = 0.35f;
+    public float explosionDamage = 25f;
 
-    [Min(0f)]
-    [Tooltip("在倍率基础上额外增加的固定伤害（可选）")]
-    public float flatBonusDamage = 0f;
-
-    [Tooltip("是否排除直接命中的那个目标（推荐开启：直击一次 + 溅射伤害给周围）")]
-    public bool excludeDirectTarget = true;
-
-    [Header("目标筛选")]
-    [Tooltip("用于筛选敌人的层（建议只勾 Enemy 层）")]
+    [Tooltip("Layers used to find enemies for AoE damage.")]
     public LayerMask enemyMask = ~0;
 
-    [Header("VFX（特效）")]
-    [Tooltip("爆炸触发时生成的特效 Prefab（你拖进去即可）")]
-    public GameObject explosionVfxPrefab;
+    [Tooltip("If true, explosion damage will use DamageFlags.SkipHitEvent to avoid recursive perk procs.")]
+    public bool explosionSkipHitEvent = true;
 
-    [Tooltip("特效的父物体（可不填，不填就生成在场景根下）")]
+    [Header("VFX")]
+    public GameObject explosionVfxPrefab;
     public Transform vfxParent;
 
     [Min(0f)]
-    [Tooltip("特效自动销毁时间（如果你的特效 Prefab 本身会自毁，这里可以设为 0）")]
     public float vfxAutoDestroySeconds = 6f;
 
-    [Tooltip("特效是否随爆炸半径缩放")]
     public bool scaleVfxByRadius = true;
 
-    [Tooltip("缩放时用直径(2r)还是半径(r)。大多数“圈/冲击波”类特效更适合用直径")]
+    [Tooltip("If true, scale by diameter (2r). If false, scale by radius (r).")]
     public bool vfxUseDiameter = true;
 
     [Min(0f)]
-    [Tooltip("最终缩放 = (半径或直径) * 该系数。用于适配不同特效资源的尺寸基准")]
     public float vfxScalePerUnit = 0.5f;
 
-    [Header("允许条件（不满足则不激活）")]
-    [Tooltip("若为 true：当未被 PerkManager 正确注册/或前置不满足时，自动禁用本组件")]
+    [Header("Gun Penalties")]
+    [Range(0.05f, 1f)]
+    public float fireRateMultiplier = 0.6f;
+
+    [Range(0.05f, 1f)]
+    public float bulletSpeedMultiplier = 0.7f;
+
+    [Header("Safety")]
+    [Tooltip("If true, disable this component when it is not properly registered in PerkManager.")]
     public bool disableIfNotAllowed = true;
 
-    [Tooltip("若为 true：额外要求 PerkManager.PrerequisitesMet(gameObject, gunIndex) 为真（防止被外部脚本绕开系统强行挂载）")]
+    [Tooltip("If true, requires PerkManager.PrerequisitesMet(gameObject, gunIndex) to be true.")]
     public bool requirePrerequisites = true;
 
     private PerkManager _perkManager;
     private CameraGunChannel _boundChannel;
-    private bool _isExploding;
+
+    private float _originalBaseDamage;
+    private float _originalFireRate;
+    private float _originalBulletSpeed;
 
     private void Awake()
     {
@@ -76,25 +66,38 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
             return;
         }
 
-        // 1) 按你现有 Perk 模板：通过“我是否在 PerkManager 的列表里”判断属于哪把枪
         int gunIndex = ResolveGunIndexFromManager();
         if (gunIndex < 0)
         {
-            // 典型原因：未通过 PerkManager API 添加、或添加顺序错误导致 OnEnable 先跑（你已修过 PerkManager 的激活顺序后一般不会出现）
             if (disableIfNotAllowed) enabled = false;
             return;
         }
 
-        // 2) 可选：额外校验前置条件（与你现有 PerkManager.PrerequisitesMet 保持一致）
         if (requirePrerequisites && !_perkManager.PrerequisitesMet(gameObject, gunIndex))
         {
             if (disableIfNotAllowed) enabled = false;
             return;
         }
 
-        // 3) 绑定这把枪的 source，用于只响应“这把枪打出来的命中事件”
         var gun = _perkManager.GetGun(gunIndex);
         _boundChannel = gun != null ? gun.cameraGunChannel : null;
+
+        if (_boundChannel == null)
+        {
+            if (disableIfNotAllowed) enabled = false;
+            return;
+        }
+
+        // ImpactOnly：直击伤害为 0（只靠爆炸伤害）
+        _originalBaseDamage = _boundChannel.baseDamage;
+        _boundChannel.baseDamage = 0f;
+
+        // 惩罚
+        _originalFireRate = _boundChannel.fireRate;
+        _originalBulletSpeed = _boundChannel.bulletSpeed;
+
+        _boundChannel.fireRate = Mathf.Max(0.01f, _originalFireRate * Mathf.Clamp(fireRateMultiplier, 0.05f, 1f));
+        _boundChannel.bulletSpeed = Mathf.Max(0.01f, _originalBulletSpeed * Mathf.Clamp(bulletSpeedMultiplier, 0.05f, 1f));
 
         CombatEventHub.OnHit += HandleHit;
     }
@@ -102,11 +105,17 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
     private void OnDisable()
     {
         CombatEventHub.OnHit -= HandleHit;
+
+        if (_boundChannel != null)
+        {
+            _boundChannel.baseDamage = _originalBaseDamage;
+            _boundChannel.fireRate = _originalFireRate;
+            _boundChannel.bulletSpeed = _originalBulletSpeed;
+        }
+
+        _boundChannel = null;
     }
 
-    /// <summary>
-    /// 按你现有 Perk 的模板：通过“我是否在 PerkManager 的列表里”判断属于哪把枪
-    /// </summary>
     private int ResolveGunIndexFromManager()
     {
         if (_perkManager == null) return -1;
@@ -122,28 +131,29 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
         if (!isActiveAndEnabled) return;
         if (e.target == null) return;
 
-        // 只处理属于这把枪的命中事件
+        // 只响应这把枪造成的命中
         if (_boundChannel != null && e.source != _boundChannel) return;
 
-        // 关键：爆炸/连锁等二次伤害（SkipHitEvent）不再触发本 Perk，防止递归卡死
+        // 关键：过滤二次伤害（比如爆炸/连锁）引起的 OnHit，避免递归卡死
         if ((e.flags & DamageFlags.SkipHitEvent) != 0) return;
 
         if (radius <= 0.01f) return;
+        if (explosionDamage <= 0f)
+        {
+            // 仍然可以播特效（命中就爆），这里按需
+            SpawnVfx(GetCenter(e));
+            return;
+        }
 
-        Vector3 center = e.hitPoint;
-        if (center == Vector3.zero)
-            center = e.target.transform.position;
+        Vector3 center = GetCenter(e);
 
-        Collider[] cols = Physics.OverlapSphere(center, radius, enemyMask, QueryTriggerInteraction.Collide);
-
-        // 命中就爆：不管炸没炸到都播特效（保持你原逻辑）
+        // 命中即爆：先播特效（不管炸到没炸到）
         SpawnVfx(center);
 
+        Collider[] cols = Physics.OverlapSphere(center, radius, enemyMask, QueryTriggerInteraction.Collide);
         if (cols == null || cols.Length == 0) return;
 
-        float explosionDamage = (e.damage * damageMultiplier) + flatBonusDamage;
-        if (explosionDamage <= 0f) return;
-
+        // 去重：同一个敌人多个 collider 只吃一次爆炸伤害
         var uniqueTargets = new HashSet<MonsterHealth>();
 
         for (int i = 0; i < cols.Length; i++)
@@ -153,8 +163,6 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
 
             var mh = hitCol.GetComponentInParent<MonsterHealth>();
             if (mh == null) continue;
-
-            if (excludeDirectTarget && mh.gameObject == e.target) continue;
             if (!uniqueTargets.Add(mh)) continue;
 
             var aoeInfo = new DamageInfo
@@ -164,10 +172,13 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
                 isHeadshot = false,
                 hitPoint = center,
                 hitCollider = hitCol,
-                flags = DamageFlags.SkipHitEvent
+
+                // 爆炸伤害必须 SkipHitEvent：防递归
+                flags = explosionSkipHitEvent ? DamageFlags.SkipHitEvent : DamageFlags.None
             };
 
-            // 关键：把原命中的 armorPayload 传进去，DamageResolver 才会走护甲分支
+            // 关键：把原命中事件带来的 armorPayload 传进去，才能走“先扣护甲再扣血”
+            // 如果你项目里 HitEvent 字段名不是 armorPayload，把 HitEvent 定义贴出来我帮你改名
             DamageResolver.ApplyHit(
                 baseInfo: aoeInfo,
                 hitCol: hitCol,
@@ -180,13 +191,20 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
         }
     }
 
+    private Vector3 GetCenter(CombatEventHub.HitEvent e)
+    {
+        Vector3 center = e.hitPoint;
+        if (center == Vector3.zero && e.target != null)
+            center = e.target.transform.position;
+        return center;
+    }
+
     private void SpawnVfx(Vector3 position)
     {
         if (explosionVfxPrefab == null) return;
 
         var go = Instantiate(explosionVfxPrefab, position, Quaternion.identity, vfxParent);
 
-        // 按爆炸半径缩放特效
         if (scaleVfxByRadius)
         {
             float baseValue = vfxUseDiameter ? (radius * 2f) : radius;
@@ -194,7 +212,6 @@ public sealed class Perk_ExplosionOnHit : MonoBehaviour
             go.transform.localScale = Vector3.one * s;
         }
 
-        // 如果你的特效不会自毁，就用这个兜底
         if (vfxAutoDestroySeconds > 0f)
         {
             Destroy(go, vfxAutoDestroySeconds);

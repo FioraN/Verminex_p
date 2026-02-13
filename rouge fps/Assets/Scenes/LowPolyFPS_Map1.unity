@@ -5359,7 +5359,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   perkManager: {fileID: 1776092499}
-  perkPrefab: {fileID: 367289147}
+  perkPrefab: {fileID: 802257170}
   gunIndex: 0
   parentOverride: {fileID: 214473141}
   key: 112
@@ -8423,12 +8423,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6234f8eb42dd66046a895ada87898bc8, type: 3}
---- !u!1 &367289147 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3962749692029427198, guid: f1c4b9eb4903cf24d939ca569398f4e8,
-    type: 3}
-  m_PrefabInstance: {fileID: 3769530124856618449}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &367593035
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20559,6 +20553,67 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 801943143}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &802257170
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 802257171}
+  - component: {fileID: 802257172}
+  m_Layer: 0
+  m_Name: "76\u53F3\u952E"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &802257171
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 802257170}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.1907263, y: 0.018798707, z: 22.130419}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &802257172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 802257170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70a9b77ab91cb5e4bbb2d6365955c428, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  radius: 3.5
+  explosionDamage: 25
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 192
+  explosionSkipHitEvent: 1
+  explosionVfxPrefab: {fileID: 356964474686017244, guid: 0ae76b2d57ad46244951a5809e0c7e23,
+    type: 3}
+  vfxParent: {fileID: 0}
+  vfxAutoDestroySeconds: 6
+  scaleVfxByRadius: 1
+  vfxUseDiameter: 1
+  vfxScalePerUnit: 0.5
+  fireRateMultiplier: 0.6
+  bulletSpeedMultiplier: 0.7
+  disableIfNotAllowed: 1
+  requirePrerequisites: 1
 --- !u!1001 &806992571
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -38679,6 +38734,16 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9110816259581256041, guid: b65db6474262ef24c8e1df57b93bf212,
+        type: 3}
+      propertyPath: radius
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 9110816259581256041, guid: b65db6474262ef24c8e1df57b93bf212,
+        type: 3}
+      propertyPath: damageMultiplier
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -49295,3 +49360,4 @@ SceneRoots:
   - {fileID: 6638548348874141972}
   - {fileID: 4466568637777329509}
   - {fileID: 3769530124856618449}
+  - {fileID: 802257171}
