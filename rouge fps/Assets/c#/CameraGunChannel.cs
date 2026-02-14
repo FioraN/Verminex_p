@@ -45,6 +45,76 @@ public class CameraGunChannel : MonoBehaviour
     [Header("Hit")]
     public LayerMask hitMask = ~0;
 
+    // ------------------------------------------------------------
+    // Runtime Stat Stacking (Flat + Additive + Multiplicative)
+    // D = (D0 + flat) * (1 + addPct) * mul
+    // Note: D0 here is the CURRENT inspector field value (baseDamage/fireRate/etc),
+    // so existing perks that directly modify those fields remain compatible.
+    // ------------------------------------------------------------
+    [Header("Runtime Stat Stacking (Optional)")]
+    [Tooltip("If enabled, final runtime stats use: (base + flat) * (1 + addPct) * mul.")]
+    [SerializeField] private bool enableRuntimeStacking = true;
+
+    [Header("Damage Stack")]
+    public float damageFlat = 0f;
+    [Tooltip("0.2 = +20%")]
+    public float damageAddPct = 0f;
+    [Tooltip("1.5 = x1.5")]
+    public float damageMul = 1f;
+
+    [Header("FireRate Stack")]
+    public float fireRateFlat = 0f;
+    [Tooltip("0.2 = +20%")]
+    public float fireRateAddPct = 0f;
+    [Tooltip("1.5 = x1.5")]
+    public float fireRateMul = 1f;
+
+    [Header("BulletSpeed Stack")]
+    public float bulletSpeedFlat = 0f;
+    [Tooltip("0.2 = +20%")]
+    public float bulletSpeedAddPct = 0f;
+    [Tooltip("1.5 = x1.5")]
+    public float bulletSpeedMul = 1f;
+
+    [Header("MaxRange Stack")]
+    public float maxRangeFlat = 0f;
+    [Tooltip("0.2 = +20%")]
+    public float maxRangeAddPct = 0f;
+    [Tooltip("1.5 = x1.5")]
+    public float maxRangeMul = 1f;
+
+    // Helper API for perks (optional to use)
+    public void ResetRuntimeStacks()
+    {
+        damageFlat = 0f; damageAddPct = 0f; damageMul = 1f;
+        fireRateFlat = 0f; fireRateAddPct = 0f; fireRateMul = 1f;
+        bulletSpeedFlat = 0f; bulletSpeedAddPct = 0f; bulletSpeedMul = 1f;
+        maxRangeFlat = 0f; maxRangeAddPct = 0f; maxRangeMul = 1f;
+    }
+
+    private float EvalStack(float baseValue, float flat, float addPct, float mul, float minValue)
+    {
+        // guard mul
+        if (mul <= 0f) mul = 1f;
+        float v = (baseValue + flat) * (1f + addPct) * mul;
+        if (v < minValue) v = minValue;
+        return v;
+    }
+
+    private float RuntimeDamage =>
+        enableRuntimeStacking ? EvalStack(baseDamage, damageFlat, damageAddPct, damageMul, 0f) : baseDamage;
+
+    private float RuntimeFireRate =>
+        enableRuntimeStacking ? EvalStack(fireRate, fireRateFlat, fireRateAddPct, fireRateMul, 0.01f) : Mathf.Max(0.01f, fireRate);
+
+    private float RuntimeBulletSpeed =>
+        enableRuntimeStacking ? EvalStack(bulletSpeed, bulletSpeedFlat, bulletSpeedAddPct, bulletSpeedMul, 0.01f) : Mathf.Max(0.01f, bulletSpeed);
+
+    private float RuntimeMaxRange =>
+        enableRuntimeStacking ? EvalStack(maxRange, maxRangeFlat, maxRangeAddPct, maxRangeMul, 0f) : maxRange;
+
+    // ------------------------------------------------------------
+
     public System.Action<CameraGunChannel> OnShot;
 
     private float _nextFireTime;
@@ -154,7 +224,8 @@ public class CameraGunChannel : MonoBehaviour
                 FireProjectile(dir);
         }
 
-        _nextFireTime = Time.time + (1f / fireRate);
+        // Use runtime fire rate (supports additive stacking)
+        _nextFireTime = Time.time + (1f / RuntimeFireRate);
 
         // Fire event: pellets should be the actual count fired this trigger
         CombatEventHub.RaiseFire(new CombatEventHub.FireEvent
@@ -173,11 +244,12 @@ public class CameraGunChannel : MonoBehaviour
     {
         Ray ray = new Ray(firePoint.position, dir);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, maxRange, hitMask, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(ray, out RaycastHit hit, RuntimeMaxRange, hitMask, QueryTriggerInteraction.Ignore))
         {
-            float t01 = maxRange <= 0.0001f ? 1f : Mathf.Clamp01(hit.distance / maxRange);
+            float mr = RuntimeMaxRange;
+            float t01 = mr <= 0.0001f ? 1f : Mathf.Clamp01(hit.distance / mr);
             float mult = Mathf.Max(0f, damageFalloffByDistance01.Evaluate(t01));
-            float finalDamage = baseDamage * mult;
+            float finalDamage = RuntimeDamage * mult;
 
             Hitbox hb = hit.collider.GetComponent<Hitbox>();
             bool isHead = hb != null && hb.part == Hitbox.Part.Head;
@@ -206,35 +278,33 @@ public class CameraGunChannel : MonoBehaviour
     {
         if (projectilePrefab == null) return;
 
-        // 1) 生成弹体
+        // 1) spawn projectile
         BulletProjectile p = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(dir));
         p.gameObject.SetActive(true);
 
-        // 2) 如果弹体上（或子物体上）有 BulletHitDamage，也把 source 塞进去（兼容触发器伤害弹）
-        //    注意：projectilePrefab 是 BulletProjectile 类型，但 prefab 内也可能同时挂了 BulletHitDamage（或在子物体）
+        // 2) if projectile has BulletHitDamage, assign source + runtime damage
         var hitDamage = p.GetComponentInChildren<BulletHitDamage>(true);
         if (hitDamage != null)
         {
             hitDamage.source = this;
-            hitDamage.baseDamage = baseDamage; // 建议加上：让trigger子弹伤害跟枪一致
-            hitDamage.Init(baseDamage, this);
+            hitDamage.baseDamage = RuntimeDamage;
+            hitDamage.Init(RuntimeDamage, this);
         }
 
-
-        // 3) 可选：确保可见
+        // 3) optional: ensure visible
         var r = p.GetComponentInChildren<Renderer>();
         if (r != null) r.enabled = true;
 
-        // 4) 初始化弹道配置（把 source 也写入 cfg）
+        // 4) init config with runtime stats
         p.Init(new BulletProjectile.Config
         {
-            source = this, // ✅ 关键：抛射物命中时就能知道来源枪
+            source = this,
 
-            speed = bulletSpeed,
+            speed = RuntimeBulletSpeed,
             gravity = bulletGravity,
             lifetime = bulletLifetime,
-            maxRange = maxRange,
-            baseDamage = baseDamage,
+            maxRange = RuntimeMaxRange,
+            baseDamage = RuntimeDamage,
             falloff = damageFalloffByDistance01,
             hitMask = hitMask
         });
