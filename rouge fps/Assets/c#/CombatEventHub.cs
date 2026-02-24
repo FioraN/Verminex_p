@@ -18,14 +18,23 @@ public static class CombatEventHub
 
     public struct HitEvent
     {
-        public CameraGunChannel source;   // 哪把枪造成
-        public GameObject target;         // 受击目标（通常是 MonsterHealth 所在的根）
-        public Collider hitCollider;      // 命中碰撞体
-        public Vector3 hitPoint;          // 命中点
-        public float damage;              // 实际扣血伤害
-        public bool isHeadshot;           // 是否爆头（如果有 Hitbox.Head）
+        public CameraGunChannel source;
+        public GameObject target;
+        public Collider hitCollider;
+        public Vector3 hitPoint;
+        public float damage;
+        public bool isHeadshot;
         public float time;
+        public BulletArmorPayload armorPayload;
+
+
+        // New: payload passthrough
+        public BulletStatusPayload statusPayload;
+
+        // New: flags passthrough (useful for filtering SkipHitEvent)
+        public DamageFlags flags;
     }
+
 
     public struct KillEvent
     {

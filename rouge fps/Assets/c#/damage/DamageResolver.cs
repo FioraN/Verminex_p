@@ -111,8 +111,12 @@ public static class DamageResolver
             hitPoint = hitPoint,
             damage = info.damage,
             isHeadshot = isHeadshot,
-            time = Time.time
+            time = Time.time,
+            armorPayload = armorPayload,
+            statusPayload = statusPayload,
+            flags = info.flags
         });
+
 
         return true;
     }
