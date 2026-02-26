@@ -71,3 +71,6 @@ MonoBehaviour:
   perkId: 3
   perkTier: 1
   requiredPerkIds: []
+  mutuallyExclusivePerkIds: []
+  flavorText: 
+  description: 
