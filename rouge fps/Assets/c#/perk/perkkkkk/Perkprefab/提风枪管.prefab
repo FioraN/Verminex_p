@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &7497977972937080019
+--- !u!1 &1832498341680751611
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,9 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5800730537125584933}
-  - component: {fileID: 3392068470226137346}
-  - component: {fileID: 3274565739410907164}
+  - component: {fileID: 3521043229924352241}
+  - component: {fileID: 7338251257083630489}
+  - component: {fileID: 1145926828576999705}
   m_Layer: 0
   m_Name: "\u63D0\u98CE\u67AA\u7BA1"
   m_TagString: Untagged
@@ -18,43 +18,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5800730537125584933
+--- !u!4 &3521043229924352241
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7497977972937080019}
+  m_GameObject: {fileID: 1832498341680751611}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.084409, y: 0.018798828, z: 21.117367}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1.8684869, y: -2.0102699, z: -0.048376083}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3392068470226137346
+--- !u!114 &7338251257083630489
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7497977972937080019}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 397730aeff21c84439432fffdcc847c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  perkId: 
-  perkTier: 1
-  requiredPerkIds: []
---- !u!114 &3274565739410907164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7497977972937080019}
+  m_GameObject: {fileID: 1832498341680751611}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1af4ad7aa4e545e44a533536e55715c1, type: 3}
@@ -64,3 +49,18 @@ MonoBehaviour:
   fireRateAddPct: 1
   priority: 0
   targetGunIndex: -1
+--- !u!114 &1145926828576999705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1832498341680751611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 397730aeff21c84439432fffdcc847c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  perkId: 21
+  perkTier: 1
+  requiredPerkIds: []

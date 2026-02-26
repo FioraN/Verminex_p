@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
 public sealed class Perk_DelayedExplosionAuraSpike : GunPerkModifierBase
@@ -45,19 +44,26 @@ public sealed class Perk_DelayedExplosionAuraSpike : GunPerkModifierBase
     public int priority = 0;
     public override int Priority => priority;
 
-    // Cached reflection for CombatEventHub.HitEvent (keeps this perk compatible if field names differ slightly).
-    private static bool _refReady;
-    private static FieldInfo _fSource;
-    private static FieldInfo _fFlags;
-    private static FieldInfo _fCollider;
-    private static FieldInfo _fHitPoint;
-    private static FieldInfo _fDamageFloat;
-    private static FieldInfo _fDamageInfo;
+    // Global (per-process) suspend: ensures NO recursion even if flags are dropped by DamageResolver.
+    private static int s_explosionDepth = 0;
+
+    // Same-frame suppression: if HitEvent is raised after ApplyHit (still same frame), this blocks it.
+    private int _lastExplosionFrame = -999999;
+
+    public override void ApplyModifiers(CameraGunChannel source, Dictionary<GunStat, StatStack> stacks)
+    {
+        if (source == null || stacks == null) return;
+
+        if (stacks.TryGetValue(GunStat.Damage, out var dmg))
+        {
+            dmg.mul *= Mathf.Max(0f, damageMultiplier);
+            stacks[GunStat.Damage] = dmg;
+        }
+    }
 
     private void OnEnable()
     {
         base.OnEnable();
-        PrepareReflection();
         CombatEventHub.OnHit += OnHit;
     }
 
@@ -72,44 +78,43 @@ public sealed class Perk_DelayedExplosionAuraSpike : GunPerkModifierBase
         CombatEventHub.OnHit -= OnHit;
     }
 
-    public override void ApplyModifiers(CameraGunChannel source, Dictionary<GunStat, StatStack> stacks)
-    {
-        if (source == null || stacks == null) return;
-
-        if (stacks.TryGetValue(GunStat.Damage, out var dmg))
-        {
-            dmg.mul *= Mathf.Max(0f, damageMultiplier);
-            stacks[GunStat.Damage] = dmg;
-        }
-    }
-
     private void OnHit(CombatEventHub.HitEvent e)
     {
         if (!isActiveAndEnabled) return;
+        if (SourceGun == null) return;
 
         // Only this gun.
-        if (SourceGun == null) return;
-        if (!TryGetSourceGun(e, out var src) || src != SourceGun) return;
+        if (e.source != SourceGun) return;
 
-        // Avoid recursive procs.
-        if (explosionSkipHitEvent && TryGetFlags(e, out var flags) && (flags & DamageFlags.SkipHitEvent) != 0)
-            return;
+        // Hard recursion guard (does NOT rely on HitEvent.flags).
+        if (s_explosionDepth > 0) return;
 
-        if (!TryGetHitCollider(e, out var hitCol) || hitCol == null) return;
-        if (!TryGetHitPoint(e, out var hitPoint)) hitPoint = hitCol.ClosestPoint(SourceGun.transform.position);
+        // Same-frame guard: if our explosion caused hits in the same frame, ignore.
+        if (Time.frameCount == _lastExplosionFrame) return;
+
+        // Soft guard (if your pipeline propagates flags correctly, this also works).
+        if (explosionSkipHitEvent && (e.flags & DamageFlags.SkipHitEvent) != 0) return;
+
+        Collider hitCol = e.hitCollider;
+        if (hitCol == null) return;
+
+        Vector3 hitPoint = e.hitPoint;
+        if (hitPoint == default)
+            hitPoint = hitCol.ClosestPoint(SourceGun.transform.position);
 
         float dealtDamage = 0f;
         if (explosionDamageFromHit)
         {
-            if (!TryGetEventDamage(e, out dealtDamage)) dealtDamage = 0f;
+            // Prefer strong-typed e.damage if present in your HitEvent.
+            dealtDamage = Mathf.Max(0f, e.damage);
         }
 
-        // Create an anchor that follows the hit target (or stays in world if desired).
+        // Create anchor
         var anchorGO = new GameObject("DelayedExplosion_AuraSpike");
         var anchor = anchorGO.AddComponent<DelayedExplosionAnchor>();
         anchor.Init(
             owner: this,
-            source: src,
+            source: SourceGun,
             attachTo: hitCol.transform,
             localPos: hitCol.transform.InverseTransformPoint(hitPoint),
             worldPos: hitPoint,
@@ -160,6 +165,10 @@ public sealed class Perk_DelayedExplosionAuraSpike : GunPerkModifierBase
         private bool _scaleVfxByRadius;
         private bool _vfxUseDiameter;
         private float _vfxScalePerUnit;
+
+        // NonAlloc + dedupe
+        private readonly Collider[] _overlaps = new Collider[128];
+        private readonly HashSet<int> _dedupe = new HashSet<int>(128);
 
         public void Init(
             Perk_DelayedExplosionAuraSpike owner,
@@ -220,7 +229,7 @@ public sealed class Perk_DelayedExplosionAuraSpike : GunPerkModifierBase
                 transform.position = _worldPos;
             }
 
-            // Spawn aura spike vfx now.
+            // Spawn aura vfx now.
             if (auraVfxPrefab != null)
             {
                 Transform parent = _vfxParent != null ? _vfxParent : transform;
@@ -268,123 +277,65 @@ public sealed class Perk_DelayedExplosionAuraSpike : GunPerkModifierBase
 
             if (explosionDamage > 0f)
             {
-                Collider[] cols = Physics.OverlapSphere(center, Mathf.Max(0.01f, _radius), _enemyMask, QueryTriggerInteraction.Collide);
-                if (cols != null)
+                // Mark same-frame suppression on owner BEFORE we apply hits.
+                if (_owner != null) _owner._lastExplosionFrame = Time.frameCount;
+
+                // Hard recursion suspend: blocks OnHit from spawning new anchors even if flags are dropped.
+                s_explosionDepth++;
+                try
                 {
+                    _dedupe.Clear();
+
+                    int count = Physics.OverlapSphereNonAlloc(
+                        center,
+                        Mathf.Max(0.01f, _radius),
+                        _overlaps,
+                        _enemyMask,
+                        QueryTriggerInteraction.Ignore
+                    );
+
                     DamageFlags flags = _skipHitEvent ? DamageFlags.SkipHitEvent : DamageFlags.None;
 
-                    for (int i = 0; i < cols.Length; i++)
+                    for (int i = 0; i < count; i++)
                     {
-                        Collider col = cols[i];
+                        Collider col = _overlaps[i];
                         if (col == null) continue;
 
-                        var info = new DamageInfo
+                        // Dedupe per-enemy (multi collider)
+                        int id;
+                        var mh = col.GetComponentInParent<MonsterHealth>();
+                        if (mh != null)
                         {
-                            damage = explosionDamage,
-                            flags = flags
-                        };
+                            id = mh.gameObject.GetInstanceID();
+                        }
+                        else
+                        {
+                            var dmg = col.GetComponentInParent<IDamageableEx>();
+                            if (dmg == null) continue;
+                            var comp = dmg as Component;
+                            id = comp != null ? comp.gameObject.GetInstanceID() : col.transform.root.gameObject.GetInstanceID();
+                        }
 
-                        DamageResolver.ApplyHit(info, col, col.ClosestPoint(center), _source, null, null, true);
+                        if (!_dedupe.Add(id)) continue;
+
+                        // Fill DamageInfo fully (improves propagation in your pipeline)
+                        DamageInfo info = default;
+                        info.source = _source;
+                        info.damage = explosionDamage;
+                        info.flags = flags;
+                        info.hitPoint = col.ClosestPoint(center);
+                        info.hitCollider = col;
+
+                        DamageResolver.ApplyHit(info, col, info.hitPoint, _source, null, null, true);
                     }
+                }
+                finally
+                {
+                    s_explosionDepth--;
                 }
             }
 
             Destroy(gameObject);
         }
-    }
-
-    // -------------------------
-    // HitEvent reflection
-    // -------------------------
-    private static void PrepareReflection()
-    {
-        if (_refReady) return;
-        _refReady = true;
-
-        var t = typeof(CombatEventHub.HitEvent);
-        _fSource = t.GetField("source") ?? t.GetField("gun") ?? t.GetField("origin");
-        _fFlags = t.GetField("flags") ?? t.GetField("damageFlags");
-        _fCollider = t.GetField("hitCollider") ?? t.GetField("collider") ?? t.GetField("targetCollider");
-        _fHitPoint = t.GetField("hitPoint") ?? t.GetField("point") ?? t.GetField("worldPoint");
-
-        _fDamageFloat = t.GetField("damage") ?? t.GetField("finalDamage") ?? t.GetField("damageDealt");
-        _fDamageInfo = t.GetField("damageInfo") ?? t.GetField("info") ?? t.GetField("dmgInfo");
-    }
-
-    private static bool TryGetSourceGun(CombatEventHub.HitEvent e, out CameraGunChannel gun)
-    {
-        gun = null;
-        if (_fSource == null) return false;
-        try { gun = _fSource.GetValue(e) as CameraGunChannel; return gun != null; }
-        catch { return false; }
-    }
-
-    private static bool TryGetFlags(CombatEventHub.HitEvent e, out DamageFlags flags)
-    {
-        flags = DamageFlags.None;
-        if (_fFlags == null) return false;
-        try
-        {
-            object v = _fFlags.GetValue(e);
-            if (v is DamageFlags df) { flags = df; return true; }
-        }
-        catch { }
-        return false;
-    }
-
-    private static bool TryGetHitCollider(CombatEventHub.HitEvent e, out Collider col)
-    {
-        col = null;
-        if (_fCollider == null) return false;
-        try { col = _fCollider.GetValue(e) as Collider; return col != null; }
-        catch { return false; }
-    }
-
-    private static bool TryGetHitPoint(CombatEventHub.HitEvent e, out Vector3 p)
-    {
-        p = default;
-        if (_fHitPoint == null) return false;
-        try
-        {
-            object v = _fHitPoint.GetValue(e);
-            if (v is Vector3 vv) { p = vv; return true; }
-        }
-        catch { }
-        return false;
-    }
-
-    private static bool TryGetEventDamage(CombatEventHub.HitEvent e, out float dmg)
-    {
-        dmg = 0f;
-
-        if (_fDamageFloat != null)
-        {
-            try
-            {
-                object v = _fDamageFloat.GetValue(e);
-                if (v is float f) { dmg = f; return true; }
-            }
-            catch { }
-        }
-
-        if (_fDamageInfo != null)
-        {
-            try
-            {
-                object infoObj = _fDamageInfo.GetValue(e);
-                if (infoObj == null) return false;
-
-                var it = infoObj.GetType();
-                var f = it.GetField("damage");
-                if (f != null && f.FieldType == typeof(float))
-                {
-                    dmg = (float)f.GetValue(infoObj);
-                    return true;
-                }
-            }
-            catch { }
-        }
-
-        return false;
     }
 }

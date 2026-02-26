@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3580493939938754293
+--- !u!1 &5778244613389965052
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,8 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8817244336620030815}
-  - component: {fileID: 1499669550952688312}
+  - component: {fileID: 8686708078158119468}
+  - component: {fileID: 4743614385613427030}
+  - component: {fileID: -4863255589964754396}
   m_Layer: 0
   m_Name: "76\u53F3\u952E"
   m_TagString: Untagged
@@ -17,28 +18,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8817244336620030815
+--- !u!4 &8686708078158119468
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3580493939938754293}
+  m_GameObject: {fileID: 5778244613389965052}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.1907263, y: 0.018798707, z: 22.130419}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1.9748039, y: -2.01027, z: 0.9646759}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1499669550952688312
+--- !u!114 &4743614385613427030
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3580493939938754293}
+  m_GameObject: {fileID: 5778244613389965052}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 70a9b77ab91cb5e4bbb2d6365955c428, type: 3}
@@ -54,10 +55,19 @@ MonoBehaviour:
     type: 3}
   vfxParent: {fileID: 0}
   vfxAutoDestroySeconds: 6
-  scaleVfxByRadius: 1
-  vfxUseDiameter: 1
-  vfxScalePerUnit: 0.5
-  fireRateMultiplier: 0.6
-  bulletSpeedMultiplier: 0.7
-  disableIfNotAllowed: 1
-  requirePrerequisites: 1
+  scaleVfxWithRadius: 1
+--- !u!114 &-4863255589964754396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5778244613389965052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 397730aeff21c84439432fffdcc847c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  perkId: 3
+  perkTier: 1
+  requiredPerkIds: []
