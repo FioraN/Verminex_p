@@ -5726,11 +5726,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 214473139}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1eb5dc62365f3d3479a7a4852e0aa85b, type: 3}
+  m_Script: {fileID: 11500000, guid: d3770f1c033639a4c9e3b7b4e0573fde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   perkManager: {fileID: 1776092499}
-  perkPrefab: {fileID: 934697637}
+  perkPrefab: {fileID: 1699792802}
   targetGun: 0
   giveOnStart: 0
   giveKey: 112
@@ -24640,12 +24640,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &934697637 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5317278436111384090, guid: b89dea09cd774db4298327d1cab59081,
-    type: 3}
-  m_PrefabInstance: {fileID: 1948692358575754923}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &957079778
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -42525,6 +42519,12 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2314720440659131352, guid: f782e17cfa8ac8d468f5789f45f3aab1,
     type: 3}
   m_PrefabInstance: {fileID: 1698094869}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1699792802 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1571890129274118218, guid: b65db6474262ef24c8e1df57b93bf212,
+    type: 3}
+  m_PrefabInstance: {fileID: 2040977124}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1700416314
 PrefabInstance:
