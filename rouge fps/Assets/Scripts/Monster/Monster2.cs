@@ -1,15 +1,20 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class Monster2 : MonsterBase
 {
-    public Animator ani;
+
+    private Animator ani;
+
     public float speed = 5;
 
     protected override void Start()
     {
+        ani=GetComponent<Animator>();
+
         // 设置基本数值
         type = MonsterType.Ranged;
 
@@ -31,7 +36,7 @@ public class Monster2 : MonsterBase
         // --- 重新设计的行为树逻辑 ---
 
         // 1. 检测是否在侦测范围内
-        Node checkDetectRange = new CheckTargetRange(transform, playerTransform, detectionRange);
+        Node checkDetectRange = new CheckTargetRange(transform, playerTransform, viewRange);
 
         // 2. 在侦测范围内的行为 (Parallel: 同时追踪和攻击)
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);

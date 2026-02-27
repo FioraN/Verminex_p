@@ -1,70 +1,115 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class Monster1 : MonsterBase
 {
-    public Animator ani;
-    public float speed=3;
+    private Animator ani;
+    public float speed = 3;
+
+    private List<Transform> patrolPoints;
+
+    // 我们需要引用这个Task，以便在脱战时重置它的状态或目标
+    private TaskPatrol patrolTask;
 
     protected override void Start()
     {
-        // 设置基本数值
+        ani = GetComponent<Animator>();
         type = MonsterType.Melee;
 
-        // 注意：使用 NavMeshAgent 的 speed 替代自定义的 moveSpeed
         if (agent == null) agent = GetComponent<NavMeshAgent>();
-        if (agent != null)
-        {
-            agent.speed = speed;
-        }
+        if (agent != null) agent.speed = speed;
+
+        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
+            transform.position = hit.position;
+
+        if (PatrolPointManager.Instance != null)
+            patrolPoints = PatrolPointManager.Instance.GetAllPatrolPoints().ToList();
         else
+            patrolPoints = new List<Transform>();
+
+        base.Start();
+    }
+
+    protected override void OnLostTarget()
+    {
+        base.OnLostTarget();
+
+        // 核心逻辑：脱战后，找到最近的巡逻点
+        if (patrolPoints != null && patrolPoints.Count > 0)
         {
-            Debug.LogWarning("NavMeshAgent component not found on Monster1.");
+            Transform nearest = GetNearestPatrolPoint();
+            if (nearest != null && patrolTask != null)
+            {
+                // 告诉巡逻任务：下次开始巡逻时，先去这个最近的点
+                patrolTask.SetNextPatrolPoint(nearest);
+            }
         }
-        base.Start(); // 调用基类 Start 以初始化 Player 和 BT
+    }
+
+    private Transform GetNearestPatrolPoint()
+    {
+        Transform nearest = null;
+        float minDst = float.MaxValue;
+        foreach (var p in patrolPoints)
+        {
+            if (p == null) continue;
+            float d = Vector3.Distance(transform.position, p.position);
+            if (d < minDst)
+            {
+                minDst = d;
+                nearest = p;
+            }
+        }
+        return nearest;
     }
 
     protected override void SetupBehaviorTree()
     {
-        // --- 重新设计的行为树逻辑 ---
+        // 1. 受伤
+        Node hurtNode = new TaskHurt(this, ani);
 
-        // 1. 检测是否在侦测范围内
-        Node checkDetectRange = new CheckTargetRange(transform, playerTransform, detectionRange);
+        // 2. 战斗检测 (被激怒 OR 看见人)
+        Node checkAggro = new CheckAggro(this);
+        // 如果距离 <= viewRange，视为发现敌人
+        Node checkViewRange = new CheckTargetRange(transform, playerTransform, viewRange);
+        Node detectionCheck = new Selector(new List<Node> { checkAggro, checkViewRange });
 
-        // 2. 在侦测范围内的行为 (Parallel: 同时追踪和攻击)
+        // 战斗行为
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);
         Node attackAction = new TaskAttackWithMove(this, ani, agent, playerTransform);
+        Node chaseAction = new TaskNavMove(agent, playerTransform, ani);
 
-        // 3. 追击和攻击的组合逻辑
-        // 优先尝试攻击，如果不在攻击范围则只移动
-        Node moveAction = new TaskNavMove(agent, playerTransform, ani);
-        Selector combatBehavior = new Selector(new List<Node>
+        Selector combatBehaviors = new Selector(new List<Node>
         {
-            new Sequence(new List<Node> { checkAttackRange, attackAction }), // 在攻击范围内：边移动边攻击
-            moveAction // 不在攻击范围：只移动
+            new Sequence(new List<Node> { checkAttackRange, attackAction }),
+            chaseAction
         });
 
-        // 4. 完整的追踪序列
-        Sequence chaseSeq = new Sequence(new List<Node> { checkDetectRange, combatBehavior });
+        Sequence combatSequence = new Sequence(new List<Node> { detectionCheck, combatBehaviors });
 
-        // 5. 待机分支
-        Node idleAction = new TaskIdle(ani);
+        // 3. 巡逻 (创建实例并保存引用)
+        patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani);
+        Node idle5s = new TaskTimedIdle(ani, 5.0f);
 
-        // --- 根节点 (Selector) ---
-        // 优先追踪/战斗 -> 否则待机
-        rootNode = new Selector(new List<Node> { chaseSeq, idleAction });
+        // 巡逻逻辑：先巡逻 -> 到了休息 -> 重复
+        Sequence patrolIdleSeq = new Sequence(new List<Node>
+        {
+            patrolTask,
+            idle5s
+        });
+
+        rootNode = new Selector(new List<Node>
+        {
+            hurtNode,
+            combatSequence,
+            patrolIdleSeq
+        });
     }
 
     protected override void PerformAttack()
     {
-        Debug.Log("Monster1 performs specific attack");
-        if (ani != null)
-        {
-            ani.SetTrigger("Attack");
-        }
-
-        // 可以在这里添加具体的伤害判定逻辑
-        // Collider[] hits = Physics.OverlapSphere(...)
+        if (ani != null) ani.SetTrigger("Attack");
     }
 }
