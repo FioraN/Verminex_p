@@ -1,5 +1,33 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7761730210508289984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 770acbaed70db4ad696458511aa3f084, type: 3}
+  m_Name: FlatKitFog
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings: {fileID: 11400000, guid: f68defe9b6889484787a8d20c715e802, type: 2}
+--- !u!114 &-2302875255382185916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cca7768aaaea4b0081f14e7f9d4b5ad, type: 3}
+  m_Name: FlatKitOutline
+  m_EditorClassIdentifier: 
+  m_Active: 0
+  settings: {fileID: 11400000, guid: ff3dfd77429d64938a26bd54c27dacd8, type: 2}
 --- !u!114 &-1878332245247344467
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -110,8 +138,10 @@ MonoBehaviour:
   - {fileID: 1608605625004639763}
   - {fileID: -93539219968167242}
   - {fileID: 1674309201421626224}
-  m_RendererFeatureMap: adc0de57c6d2eee5eb09c38b64fd97cd
-  m_UseNativeRenderPass: 0
+  - {fileID: 5409050543515341188}
+  - {fileID: -7761730210508289984}
+  m_RendererFeatureMap: adc0de57c6d2eee587d3fea9468dee193c212716f97bdff393637585a18f6bf113c6180e4bea5216b6f23a3593aeb3fe706be70a59573c1784915d9acfce104b
+  m_UseNativeRenderPass: 1
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
@@ -186,7 +216,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a22e2c48a7d06a340a43c592c748aae0, type: 3}
-  m_Name: '[SCPE] OverlayRenderer'
+  m_Name: SCPE OverlayRenderer
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
@@ -203,10 +233,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8fb509713f3bc55438a47e05ae9adb8c, type: 3}
-  m_Name: '[SCPE] TiltShiftRenderer'
+  m_Name: SCPE TiltShiftRenderer
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
     executionOrder: 0
     alwaysEnable: 0
     cameraTypes: 5
+--- !u!114 &5409050543515341188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cca7768aaaea4b0081f14e7f9d4b5ad, type: 3}
+  m_Name: FlatKitOutline
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings: {fileID: 11400000, guid: 6a9ce4523839c4a44a17d8d1334b16d2, type: 2}

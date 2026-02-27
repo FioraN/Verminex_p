@@ -52,6 +52,20 @@ public class CameraGunChannel : MonoBehaviour
     [Header("Hit")]
     public LayerMask hitMask = ~0;
 
+    // ===================== 新增：准星中心瞄准修正（保留原行为可关闭） =====================
+    [Header("Aim (Crosshair Center)")]
+    [Tooltip("若开启：开火方向以屏幕中心准星为目标点（即使 firePoint 不在摄像机中心也能对齐）。")]
+    public bool aimFromScreenCenter = true;
+
+    [Tooltip("用于计算屏幕中心射线的摄像机；为空则尝试 Camera.main。")]
+    public Camera aimCamera;
+
+    [Tooltip("用于屏幕中心射线的遮罩；为空则使用 hitMask。")]
+    public LayerMask aimMask = ~0;
+
+    [Tooltip("屏幕中心射线是否忽略 Trigger。通常建议 Ignore。")]
+    public QueryTriggerInteraction aimTriggerInteraction = QueryTriggerInteraction.Ignore;
+
     public System.Action<CameraGunChannel> OnShot;
 
     private float _nextFireTime;
@@ -150,16 +164,18 @@ public class CameraGunChannel : MonoBehaviour
         spread.OnShotFired();
 
         // ===================== 关键改动 1：霰弹枪弹丸数量走“最终倍率” =====================
-        // 这样 Perk 的“弹丸数量 /2”可以作为开火瞬间最后一步生效（等价最高优先级）
         int shots = (shotType == ShotType.Shotgun) ? GetFinalPelletsPerShot() : 1;
         bool isShotgun = (shotType == ShotType.Shotgun);
+
+        // ===================== 新增：每次开火先解算“准星目标点 + 基向量” =====================
+        ResolveAimBasis(out Vector3 baseForward, out Vector3 basisRight, out Vector3 basisUp);
 
         for (int i = 0; i < shots; i++)
         {
             Vector3 dir = spread.GetDirection(
-                firePoint.forward,
-                firePoint.right,
-                firePoint.up,
+                baseForward,
+                basisRight,
+                basisUp,
                 isShotgun
             );
 
@@ -173,7 +189,6 @@ public class CameraGunChannel : MonoBehaviour
         if (fireMode == FireMode.Auto)
             _nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
 
-        // Fire 事件：pellets 是本次真实发射数量
         CombatEventHub.RaiseFire(new CombatEventHub.FireEvent
         {
             source = this,
@@ -189,19 +204,51 @@ public class CameraGunChannel : MonoBehaviour
 
     /// <summary>
     /// 获取本次开火的“最终弹丸数”
-    /// - 在开火瞬间读取倍率，保证效果永远在所有其它修改之后生效
-    /// - 例如 Perk：弹丸数量/2 => mul=0.5
     /// </summary>
     public int GetFinalPelletsPerShot()
     {
         int basePellets = Mathf.Max(1, pelletsPerShot);
 
-        // 注意：你需要在项目里有 PelletCountMultiplierRegistry（我之前给你的注册表脚本）
         float mul = PelletCountMultiplierRegistry.GetFinalMultiplier(this);
 
-        // 使用 Floor：更符合“/2”的直觉（7 -> 3），并且永远保底 1
         int finalPellets = Mathf.FloorToInt(basePellets * mul + 0.0001f);
         return Mathf.Max(1, finalPellets);
+    }
+
+    // ===================== 新增：准星对齐核心 =====================
+
+    private void ResolveAimBasis(out Vector3 forward, out Vector3 right, out Vector3 up)
+    {
+        // 默认保持你原逻辑：用 firePoint 的局部轴
+        forward = firePoint.forward;
+        right = firePoint.right;
+        up = firePoint.up;
+
+        if (!aimFromScreenCenter) return;
+
+        Camera cam = aimCamera != null ? aimCamera : Camera.main;
+        if (cam == null) return;
+
+        LayerMask mask = aimMask.value != 0 ? aimMask : hitMask;
+
+        Ray aimRay = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+
+        Vector3 targetPoint;
+        if (Physics.Raycast(aimRay, out RaycastHit aimHit, maxRange, mask, aimTriggerInteraction))
+            targetPoint = aimHit.point;
+        else
+            targetPoint = aimRay.origin + aimRay.direction * maxRange;
+
+        Vector3 toTarget = targetPoint - firePoint.position;
+        if (toTarget.sqrMagnitude < 0.000001f) return;
+
+        forward = toTarget.normalized;
+
+        // 霰弹/散布基向量用摄像机轴更稳定：围绕准星方向散布
+        right = cam.transform.right;
+        up = cam.transform.up;
+
+        // 保险：如果 forward 接近 up 导致 spread 算法可能退化，可在这里微调，但一般不会发生
     }
 
     private void FireHitscan(Vector3 dir)
@@ -210,15 +257,11 @@ public class CameraGunChannel : MonoBehaviour
 
         if (Physics.Raycast(ray, out RaycastHit hit, maxRange, hitMask, QueryTriggerInteraction.Ignore))
         {
-            // Hitscan：用曲线做衰减（保持你原来的算法）
             float mr = maxRange;
             float t01 = mr <= 0.0001f ? 1f : Mathf.Clamp01(hit.distance / mr);
             float mult = Mathf.Max(0f, damageFalloffByDistance01.Evaluate(t01));
             float finalDamage = baseDamage * mult;
 
-            // ===================== 关键改动 2：命中结算走 DamageResolver =====================
-            // 目的：让 HitboxMultiplierManager 可以在当次命中就影响倍率（包括你要的“爆头倍率 add pct”）
-            // 同时保留护甲、状态、事件、UI 等统一链路
             var armorPayload = GetComponentInChildren<BulletArmorPayload>(true);
             var statusPayload = GetComponentInChildren<BulletStatusPayload>(true);
 
@@ -242,28 +285,21 @@ public class CameraGunChannel : MonoBehaviour
     {
         if (projectilePrefab == null) return;
 
-        // 1) 生成实体子弹
         BulletProjectile p = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(dir));
         p.gameObject.SetActive(true);
 
-        // 2) 如果子弹上挂了 BulletHitDamage（兼容你现有逻辑）
         var hitDamage = p.GetComponentInChildren<BulletHitDamage>(true);
         if (hitDamage != null)
         {
             hitDamage.source = this;
             hitDamage.baseDamage = baseDamage;
 
-            // 保持你现有 API 行为
             hitDamage.Init(baseDamage, this);
         }
 
-        // 3) 确保可见
         var r = p.GetComponentInChildren<Renderer>();
         if (r != null) r.enabled = true;
 
-        // 4) 初始化子弹配置
-        // 注意：Projectile 的伤害衰减已经改为“从 projectileFalloffStartMeters 开始线性衰减到 maxRange”
-        // 不再使用 damageFalloffByDistance01 曲线
         p.Init(new BulletProjectile.Config
         {
             source = this,
@@ -283,18 +319,20 @@ public class CameraGunChannel : MonoBehaviour
 
     public void FireBonusPellets(int pellets)
     {
-        // 额外子弹不消耗冷却，也不再次触发 OnShot
         if (!HasValidSetup()) return;
         if (pellets <= 0) return;
 
         bool isShotgun = (shotType == ShotType.Shotgun);
 
+        // 额外子弹也要对齐准星
+        ResolveAimBasis(out Vector3 baseForward, out Vector3 basisRight, out Vector3 basisUp);
+
         for (int i = 0; i < pellets; i++)
         {
             Vector3 dir = spread.GetDirection(
-                firePoint.forward,
-                firePoint.right,
-                firePoint.up,
+                baseForward,
+                basisRight,
+                basisUp,
                 isShotgun
             );
 
@@ -330,7 +368,6 @@ public class CameraGunChannel : MonoBehaviour
     {
         if (ammo == null) return;
 
-        // 防止重复订阅
         ammo.OnReloadStart -= HandleReloadStart;
         ammo.OnReloadEnd -= HandleReloadEnd;
 
@@ -367,16 +404,8 @@ public class CameraGunChannel : MonoBehaviour
 
     // ========== FireMode 变化通知 + 立即刷新（新增） ==========
 
-    /// <summary>
-    /// 当 fireMode 被切换时触发（使用 SetFireMode 才会触发）
-    /// </summary>
     public System.Action<CameraGunChannel, FireMode, FireMode> OnFireModeChanged;
 
-    /// <summary>
-    /// 推荐：所有地方切换开火模式都用这个方法
-    /// - 会触发 OnFireModeChanged
-    /// - 会让 GunStatContext 立刻刷新（可选）
-    /// </summary>
     public void SetFireMode(FireMode newMode, bool forceRebuildNow = true)
     {
         if (fireMode == newMode) return;
