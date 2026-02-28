@@ -122,6 +122,9 @@ public class TaskAttackWithMove : Node
             SetStoppedState(true);
             // 这里可以加一个朝向修正，确保攻击时正对目标
             _monster.transform.LookAt(new Vector3(_target.position.x, _monster.transform.position.y, _target.position.z));
+
+            
+
         }
         else
         {

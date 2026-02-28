@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-
+// 近战攻击怪物：会在一定范围内追击玩家，脱战后回最近的巡逻点
 public class Monster1 : MonsterBase
 {
     private Animator ani;
     public float speed = 3;
+    public float attack = 10;// 近战攻击力
 
     private List<Transform> patrolPoints;
 
@@ -32,6 +33,8 @@ public class Monster1 : MonsterBase
         base.Start();
     }
 
+
+    //脱战
     protected override void OnLostTarget()
     {
         base.OnLostTarget();
@@ -108,8 +111,22 @@ public class Monster1 : MonsterBase
         });
     }
 
+
+
     protected override void PerformAttack()
     {
+        // 1. 检查玩家是否存在且存活
+        if (playerTransform == null) return;
+
+
         if (ani != null) ani.SetTrigger("Attack");
+
+       
+
+
     }
+
+
+
+    
 }

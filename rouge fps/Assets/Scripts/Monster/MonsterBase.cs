@@ -10,6 +10,7 @@ public class MonsterBase : MonoBehaviour
     [Header("Base Stats")]
     public MonsterType type;
     public float hp = 100f;
+    
 
     [Header("感知设置")]
     [Tooltip("索敌范围：怪物未发现玩家时，能看到玩家的距离")]
@@ -25,12 +26,15 @@ public class MonsterBase : MonoBehaviour
 
     [HideInInspector] public bool isHurt = false;
     [HideInInspector] public bool hasAggro = false; // 是否已发现敌人
-
+    protected bool isDead = false;//是否死亡
     [HideInInspector] public NavMeshAgent agent;
 
     protected float lastAttackTime;
     [HideInInspector] public Transform playerTransform;
     protected Node rootNode;
+
+
+
 
     protected virtual void Awake()
     {
@@ -67,6 +71,9 @@ public class MonsterBase : MonoBehaviour
 
     protected virtual void Update()
     {
+
+        if (isDead) return;//检测死亡
+
         CheckAggroState();
 
         if (rootNode != null)
@@ -139,20 +146,63 @@ public class MonsterBase : MonoBehaviour
 
     protected virtual void PerformAttack() { }
 
+
+    // 受到伤害
     public virtual void TakeDamage(float amount)
     {
+        if (isDead) return; // 死了就不再受伤
+
         hp -= amount;
         if (!hasAggro) hasAggro = true; // 被打立马反击
 
         if (hp <= 0)
         {
-            Destroy(gameObject);
+            Die();//死亡
         }
         else
         {
             isHurt = true;
         }
     }
+
+
+    protected virtual void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        // 1. 禁用寻路，防止尸体滑行
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.enabled = false; 
+        }
+
+        // 2. 禁用碰撞体（可选，防止玩家被尸体挡住路）
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+
+        // 3. 播放动画
+        Animator ani = GetComponent<Animator>();
+        if (ani != null)
+        {
+            ani.SetTrigger("Die");
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+
+    //死亡动画结束后调用
+    public virtual void OnDeathAnimationEnd()
+    {
+        Destroy(gameObject);
+    }
+
+
+
 
     protected virtual void OnDrawGizmosSelected()
     {
