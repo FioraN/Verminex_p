@@ -84,4 +84,4 @@ MonoBehaviour:
   flavorText: 
   description: Firearm range reduced, rate of fire greatly increased, damage decreased,
     some small caliber attachments unlocked
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: e96eb340ecbd9194ea19e2b0594e93bb, type: 3}

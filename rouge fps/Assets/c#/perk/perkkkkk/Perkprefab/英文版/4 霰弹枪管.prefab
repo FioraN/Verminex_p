@@ -74,4 +74,4 @@ MonoBehaviour:
     - 3
   flavorText: 
   description: Weapon changed to shotgun, unlock some shotgun attachments
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8b3f1ea7706c4104dabbcb34d834ce6f, type: 3}

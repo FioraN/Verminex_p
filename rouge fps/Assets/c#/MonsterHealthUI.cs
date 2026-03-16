@@ -1,10 +1,12 @@
-﻿using UnityEngine;
+using System;
+using UnityEngine;
 
 public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamageableArmorEx
 {
     [Header("Health")]
     [Min(1f)] public float maxHp = 100f;
     [Min(0f)] public float hp = 100f;
+    [SerializeField] private bool isDeadDebug;
 
     [Header("Hit UI")]
     public bool autoFindHitUI = true;
@@ -12,19 +14,21 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
     private HitFeedbackUI _hitUI;
     private bool _didDie;
 
-    // Last-hit tracking (integrated)
     private CameraGunChannel _lastHitSource;
     private float _lastHitTime;
 
+    public event Action<DamageInfo> Damaged;
+    public event Action<DamageInfo> Died;
+
     public CameraGunChannel LastHitSource => _lastHitSource;
     public float LastHitTime => _lastHitTime;
-
     public bool IsDead => hp <= 0.0001f;
 
     private void Awake()
     {
         if (maxHp < 1f) maxHp = 1f;
         hp = Mathf.Clamp(hp, 0f, maxHp);
+        SyncDebugState();
 
         if (autoFindHitUI)
             TryResolveHitUI();
@@ -32,6 +36,7 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
 
     private void OnEnable()
     {
+        SyncDebugState();
         CombatEventHub.OnHit += HandleHitEvent;
     }
 
@@ -52,7 +57,6 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
         if (IsDead) return;
         if (e.target == null) return;
 
-        // Most of your pipeline sets target to MonsterHealth.gameObject
         if (e.target == gameObject)
         {
             if (e.source != null)
@@ -63,7 +67,6 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
             return;
         }
 
-        // Fallback: if someone raised hit with a child object as target
         if (e.target.transform != null && e.target.transform.IsChildOf(transform))
         {
             if (e.source != null)
@@ -74,7 +77,6 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
         }
     }
 
-    // Required by IDamageable
     public void TakeDamage(float damage)
     {
         TakeDamage(new DamageInfo
@@ -88,16 +90,13 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
         });
     }
 
-    /// <summary>
-    /// Direct HP damage path (DOT/burn/environment/etc.)
-    /// - Does NOT touch armor
-    /// - Does NOT use vulnerable window multiplier
-    /// </summary>
     public void TakeDamage(DamageInfo info)
     {
         if (info.damage <= 0f || IsDead) return;
 
         hp = Mathf.Max(0f, hp - info.damage);
+        SyncDebugState();
+        Damaged?.Invoke(info);
 
         if ((info.flags & DamageFlags.SkipHitEvent) == 0 && info.source != null)
         {
@@ -105,15 +104,9 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
             if (_hitUI != null) _hitUI.ShowHit(info.isHeadshot);
         }
 
-        TryRaiseKill(info.source);
+        TryRaiseKill(info);
     }
 
-    /// <summary>
-    /// OnHit / ApplyHit path:
-    /// - Damage hits armor first
-    /// - Overflow can hit HP
-    /// - Vulnerable window multiplier applies ONLY to overflow-to-HP
-    /// </summary>
     public void TakeDamage(DamageInfo info, ArmorHitInfo armorInfo)
     {
         if (info.damage <= 0f || IsDead) return;
@@ -121,7 +114,6 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
         float damage = info.damage;
         float overflowDamage = damage;
 
-        // Armor is only used for hit-based damage
         EnemyArmor armor = GetComponentInParent<EnemyArmor>();
 
         if (armor != null && armor.HasArmor)
@@ -134,7 +126,6 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
         {
             float hpDamage = overflowDamage;
 
-            // Only amplify overflow HP damage during vulnerable window
             if (armor != null && armor.InVulnerableWindow)
             {
                 hpDamage *= armor.HpDamageMultiplier;
@@ -143,27 +134,37 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
             hp = Mathf.Max(0f, hp - hpDamage);
         }
 
+        SyncDebugState();
+        Damaged?.Invoke(info);
+
         if ((info.flags & DamageFlags.SkipHitEvent) == 0 && info.source != null)
         {
             if (_hitUI == null && autoFindHitUI) TryResolveHitUI();
             if (_hitUI != null) _hitUI.ShowHit(info.isHeadshot);
         }
 
-        TryRaiseKill(info.source);
+        TryRaiseKill(info);
     }
 
-    private void TryRaiseKill(CameraGunChannel source)
+    private void TryRaiseKill(DamageInfo info)
     {
         if (_didDie) return;
         if (!IsDead) return;
 
         _didDie = true;
+        SyncDebugState();
+        Died?.Invoke(info);
 
         CombatEventHub.RaiseKill(new CombatEventHub.KillEvent
         {
-            source = source,
+            source = info.source,
             target = gameObject,
             time = Time.time
         });
+    }
+
+    private void SyncDebugState()
+    {
+        isDeadDebug = IsDead;
     }
 }

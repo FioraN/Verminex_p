@@ -9943,6 +9943,7 @@ GameObject:
   - component: {fileID: 375345245}
   - component: {fileID: 375345244}
   - component: {fileID: 375345251}
+  - component: {fileID: 375345252}
   m_Layer: 0
   m_Name: Monster1
   m_TagString: Untagged
@@ -9963,14 +9964,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 0
-  hp: 100
   speed: 3
   attack: 10
+  attackRange: 2
+  attackCooldown: 1.5
   viewRange: 8
   viewAngle: 120
   chaseRange: 15
-  attackRange: 2
-  attackCooldown: 1.5
   isHurt: 0
   hasAggro: 0
   agent: {fileID: 0}
@@ -10518,6 +10518,22 @@ MonoBehaviour:
         ScriptDriven: 0
         AutoResume: 0
         AutoResumeAfter: 0.25
+--- !u!114 &375345252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 375345243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: def4fc49819bd3a4eb219ddde089b459, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHp: 100
+  hp: 100
+  isDeadDebug: 0
+  autoFindHitUI: 1
 --- !u!1001 &375804378
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21624,6 +21640,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 1000000
   hp: 1000
+  isDeadDebug: 0
   autoFindHitUI: 1
 --- !u!114 &794532592
 MonoBehaviour:
@@ -24649,6 +24666,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 1000000
   hp: 1000
+  isDeadDebug: 0
   autoFindHitUI: 1
 --- !u!4 &947589692
 Transform:
@@ -34118,6 +34136,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 1000000
   hp: 1000
+  isDeadDebug: 0
   autoFindHitUI: 1
 --- !u!4 &1347370651
 Transform:
@@ -35915,6 +35934,7 @@ GameObject:
   - component: {fileID: 1406028350}
   - component: {fileID: 1406028349}
   - component: {fileID: 1406028356}
+  - component: {fileID: 1406028357}
   m_Layer: 0
   m_Name: Monster2
   m_TagString: Untagged
@@ -35935,14 +35955,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
-  hp: 100
   speed: 5
   attack: 15
+  attackRange: 5
+  attackCooldown: 1.5
   viewRange: 8
   viewAngle: 120
   chaseRange: 15
-  attackRange: 5
-  attackCooldown: 1.5
   isHurt: 0
   hasAggro: 0
   agent: {fileID: 0}
@@ -36108,6 +36127,22 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1406028357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1406028348}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: def4fc49819bd3a4eb219ddde089b459, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHp: 100
+  hp: 100
+  isDeadDebug: 0
+  autoFindHitUI: 1
 --- !u!1001 &1406168821
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -43013,6 +43048,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 1000000
   hp: 1000
+  isDeadDebug: 0
   autoFindHitUI: 1
 --- !u!4 &1697831511
 Transform:
@@ -51239,6 +51275,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 1000000
   hp: 1000
+  isDeadDebug: 0
   autoFindHitUI: 1
 --- !u!4 &2082438447
 Transform:
@@ -56963,7 +57000,7 @@ MonoBehaviour:
         ChannelMode: 0
         Channel: 0
         MMChannelDefinition: {fileID: 0}
-        Chance: 100
+        Chance: 50
         DisplayColor: {r: 0, g: 0, b: 0, a: 1}
         Timing:
           TimescaleMode: 0
@@ -57049,6 +57086,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 5552896573382696270}
+  testkey: 323
 --- !u!1 &5559053670764992523
 GameObject:
   m_ObjectHideFlags: 0
@@ -58542,6 +58580,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3770f1c033639a4c9e3b7b4e0573fde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  perkManager: {fileID: 0}
+  perkPrefab: {fileID: 0}
+  targetGun: 0
+  giveOnStart: 0
+  giveKey: 112
 --- !u!225 &7376259403317685552
 CanvasGroup:
   m_ObjectHideFlags: 0

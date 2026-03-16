@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-// ½üÕ½¹¥»÷¹ÖÎï£º»áÔÚÒ»¶¨·¶Î§ÄÚ×·»÷Íæ¼Ò£¬ÍÑÕ½ºó»Ø×î½üµÄÑ²Âßµã
+// è¿‘æˆ˜æ”»å‡»æ€ªç‰©ï¼šä¼šåœ¨ä¸€å®šèŒƒå›´å†…è¿½å‡»ç©å®¶ï¼Œè„±æˆ˜åå›æœ€è¿‘çš„å·¡é€»ç‚¹
 public class Monster1 : MonsterBase
 {
     private Animator ani;
     private List<Transform> patrolPoints;
 
-    // ÎÒÃÇĞèÒªÒıÓÃÕâ¸öTask£¬ÒÔ±ãÔÚÍÑÕ½Ê±ÖØÖÃËüµÄ×´Ì¬»òÄ¿±ê
+    // æˆ‘ä»¬éœ€è¦å¼•ç”¨è¿™ä¸ªTaskï¼Œä»¥ä¾¿åœ¨è„±æˆ˜æ—¶é‡ç½®å®ƒçš„çŠ¶æ€æˆ–ç›®æ ‡
     private TaskPatrol patrolTask;
 
     protected override void Start()
@@ -31,24 +31,24 @@ public class Monster1 : MonsterBase
     }
 
 
-    //ÍÑÕ½
+    //è„±æˆ˜
     protected override void OnLostTarget()
     {
         base.OnLostTarget();
 
-        // ºËĞÄÂß¼­£ºÍÑÕ½ºó£¬ÕÒµ½×î½üµÄÑ²Âßµã
+        // æ ¸å¿ƒé€»è¾‘ï¼šè„±æˆ˜åï¼Œæ‰¾åˆ°æœ€è¿‘çš„å·¡é€»ç‚¹
         if (patrolPoints != null && patrolPoints.Count > 0)
         {
             Transform nearest = GetNearestPatrolPoint();
             if (nearest != null && patrolTask != null)
             {
-                // ¸æËßÑ²ÂßÈÎÎñ£ºÏÂ´Î¿ªÊ¼Ñ²ÂßÊ±£¬ÏÈÈ¥Õâ¸ö×î½üµÄµã
+                // å‘Šè¯‰å·¡é€»ä»»åŠ¡ï¼šä¸‹æ¬¡å¼€å§‹å·¡é€»æ—¶ï¼Œå…ˆå»è¿™ä¸ªæœ€è¿‘çš„ç‚¹
                 patrolTask.SetNextPatrolPoint(nearest);
             }
         }
     }
 
-    //»ñÈ¡ÁÙ½üÑ²Âßµã
+    //è·å–ä¸´è¿‘å·¡é€»ç‚¹
     private Transform GetNearestPatrolPoint()
     {
         Transform nearest = null;
@@ -67,21 +67,21 @@ public class Monster1 : MonsterBase
     }
 
 
-    //ÉèÖÃĞĞÎªÊ÷
+    //è®¾ç½®è¡Œä¸ºæ ‘
     protected override void SetupBehaviorTree()
     {
-        // 1. ÊÜÉË
+        // 1. å—ä¼¤
         Node hurtNode = new TaskHurt(this, ani);
 
-        // 2. Õ½¶·¼ì²â (±»¼¤Å­ OR ¿´¼ûÈË)
+        // 2. æˆ˜æ–—æ£€æµ‹ (è¢«æ¿€æ€’ OR çœ‹è§äºº)
         Node checkAggro = new CheckAggro(this);
-        // Èç¹û¾àÀë <= viewRange£¬¶øÇÒÔÚ½Ç¶È·¶Î§ÄÚ ÊÓÎª·¢ÏÖµĞÈË
+        // å¦‚æœè·ç¦» <= viewRangeï¼Œè€Œä¸”åœ¨è§’åº¦èŒƒå›´å†… è§†ä¸ºå‘ç°æ•Œäºº
         Node checkViewSector = new CheckTargetSector(transform, playerTransform, viewRange, viewAngle);
 
         Node detectionCheck = new Selector(new List<Node> { checkAggro, checkViewSector });
 
 
-        // Õ½¶·ĞĞÎª
+        // æˆ˜æ–—è¡Œä¸º
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);
         Node attackAction = new TaskAttackWithMove(this, ani, agent, playerTransform);
         Node chaseAction = new TaskNavMove(agent, playerTransform, ani);
@@ -94,11 +94,11 @@ public class Monster1 : MonsterBase
 
         Sequence combatSequence = new Sequence(new List<Node> { detectionCheck, combatBehaviors });
 
-        // 3. Ñ²Âß (´´½¨ÊµÀı²¢±£´æÒıÓÃ)
+        // 3. å·¡é€» (åˆ›å»ºå®ä¾‹å¹¶ä¿å­˜å¼•ç”¨)
         patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani);
         Node idle5s = new TaskTimedIdle(ani, 5.0f);
 
-        // Ñ²ÂßÂß¼­£ºÏÈÑ²Âß -> µ½ÁËĞİÏ¢ -> ÖØ¸´
+        // å·¡é€»é€»è¾‘ï¼šå…ˆå·¡é€» -> åˆ°äº†ä¼‘æ¯ -> é‡å¤
         Sequence patrolIdleSeq = new Sequence(new List<Node>
         {
             patrolTask,
@@ -114,20 +114,25 @@ public class Monster1 : MonsterBase
     }
 
 
-    //¿ÉÒÔ¹¥»÷
+    //å¯ä»¥æ”»å‡»
     protected override void PerformAttack()
     {
-        // 1. ¼ì²éÍæ¼ÒÊÇ·ñ´æÔÚÇÒ´æ»î
+        // 1. æ£€æŸ¥ç©å®¶æ˜¯å¦å­˜åœ¨ä¸”å­˜æ´»
         if (playerTransform == null) return;
 
+        PlayerVitals playerVitals = playerTransform.GetComponent<PlayerVitals>();
+        if (playerVitals == null)
+            playerVitals = playerTransform.GetComponentInParent<PlayerVitals>();
+
+        if (playerVitals == null || playerVitals.IsDead) return;
 
         if (ani != null) ani.SetTrigger("Attack");
 
-
-        //Ìí¼Ó¶ÔÍæ¼ÒµÄÉËº¦Âß¼­
-       
-
-
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+        if (distanceToPlayer <= attackRange + 0.25f)
+        {
+            playerVitals.TakeDamage(attack);
+        }
     }
 
 

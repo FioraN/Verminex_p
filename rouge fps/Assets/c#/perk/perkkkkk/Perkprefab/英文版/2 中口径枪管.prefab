@@ -84,4 +84,4 @@ MonoBehaviour:
   flavorText: 
   description: Firearm range, rate of fire, and damage are changed to medium levels,
     unlocking some medium-caliber attachments
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: ce269b411270a3f4996d47834d29cd4d, type: 3}

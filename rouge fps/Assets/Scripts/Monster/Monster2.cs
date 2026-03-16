@@ -1,19 +1,17 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 
-//远程攻击怪物：会在一定范围内使用投射物攻击玩家，脱战后回最近的巡逻点
 public class Monster2 : MonsterBase
 {
     private Animator ani;
 
-    // 投射物预制体 (必须在 Inspector 赋值)
     [Header("Ranged Settings")]
     public GameObject projectilePrefab;
-    public Transform firePoint; // 发射点的位置
+    public Transform firePoint;
+    public float projectileSpeed = 10f;
+    public float projectileLifetime = 5f;
 
     private TaskPatrol patrolTask;
     private List<Transform> patrolPoints;
@@ -26,7 +24,6 @@ public class Monster2 : MonsterBase
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (agent != null) agent.speed = speed;
 
-        // 纠正坐标到 NavMesh
         if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
             transform.position = hit.position;
 
@@ -38,7 +35,6 @@ public class Monster2 : MonsterBase
         base.Start();
     }
 
-    // 脱战回最近点的逻辑
     protected override void OnLostTarget()
     {
         base.OnLostTarget();
@@ -72,24 +68,13 @@ public class Monster2 : MonsterBase
 
     protected override void SetupBehaviorTree()
     {
-        // 1. 受伤
         Node hurtNode = new TaskHurt(this, ani);
-
-        // 2. 战斗检测
         Node checkAggro = new CheckAggro(this);
-
-        // 如果距离 <= viewRange，而且在角度范围内 视为发现敌人
         Node checkViewSector = new CheckTargetSector(transform, playerTransform, viewRange, viewAngle);
 
         Node detectionCheck = new Selector(new List<Node> { checkAggro, checkViewSector });
-
-        // 3. 战斗行为
-
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);
-
-        // TaskAttackWithMove 负责：停止 -> 转身 -> 前摇 -> 攻击(此时调用PerformAttack) -> 后摇
         Node attackAction = new TaskAttackWithMove(this, ani, agent, playerTransform);
-
         Node chaseAction = new TaskNavMove(agent, playerTransform, ani);
 
         Selector combatBehaviors = new Selector(new List<Node>
@@ -100,7 +85,6 @@ public class Monster2 : MonsterBase
 
         Sequence combatSequence = new Sequence(new List<Node> { detectionCheck, combatBehaviors });
 
-        // 4. 巡逻
         patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani);
         Node idle5s = new TaskTimedIdle(ani, 5.0f);
 
@@ -118,44 +102,36 @@ public class Monster2 : MonsterBase
         });
     }
 
-    //远程攻击逻辑
     protected override void PerformAttack()
     {
+        if (playerTransform == null) return;
+        if (ani != null) ani.SetTrigger("Attack");
 
-        // 这里可以添加一些攻击前的动画或效果
-        ani.SetTrigger("Attack");
-
-
-
-        // 生成投射物
-        if (projectilePrefab != null && firePoint != null)
-        {
-            GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
-            // 这里你可以初始化子弹，给它方向等
-            proj.SetActive(true);
-
-            // 简单朝向玩家
-            if (playerTransform != null)
-            {
-                proj.transform.LookAt(playerTransform.position + Vector3.up * 1.2f); // 稍微抬高一点瞄准胸口
-            }
-
-            //子弹往玩家方向飞行
-            Rigidbody rb = proj.GetComponent<Rigidbody>();
-            rb.velocity = Vector3.zero;
-            if (playerTransform != null)
-            {
-                Vector3 direction = (playerTransform.position + Vector3.up * 1.2f - firePoint.position).normalized;
-                float projectileSpeed = 10f; // 你可以根据需要调整这个速度
-                rb.velocity = direction * projectileSpeed;
-            }
-
-
-
-        }
-        else
+        if (projectilePrefab == null || firePoint == null)
         {
             Debug.LogWarning("Monster2 missing projectilePrefab or firePoint!");
+            return;
+        }
+
+        GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        proj.SetActive(true);
+
+        Vector3 targetPoint = playerTransform.position + Vector3.up * 1.2f;
+        proj.transform.LookAt(targetPoint);
+
+        MonsterProjectileDamage projectileDamage = proj.GetComponent<MonsterProjectileDamage>();
+        if (projectileDamage == null)
+        {
+            projectileDamage = proj.AddComponent<MonsterProjectileDamage>();
+        }
+        projectileDamage.Init(attack, transform, projectileLifetime);
+
+        Rigidbody rb = proj.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            Vector3 direction = (targetPoint - firePoint.position).normalized;
+            rb.velocity = direction * projectileSpeed;
         }
     }
 }

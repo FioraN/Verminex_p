@@ -75,4 +75,4 @@ MonoBehaviour:
   flavorText: 
   description: The weapon switches to single-shot, magazine-fed, and unlocks some
     attachments
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 102dc6d9f06036a43980c7eaa9b4d267, type: 3}

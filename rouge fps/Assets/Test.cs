@@ -6,6 +6,7 @@ using UnityEngine;
 public class Test : MonoBehaviour
 {
     public MMF_Player player;
+    public KeyCode testkey;
     // Start is called before the first frame update
     void Start()
     {
@@ -15,7 +16,7 @@ public class Test : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKey(KeyCode.J)) { 
+        if (Input.GetKey(testkey)) { 
             player.PlayFeedbacks();
         }
     }
