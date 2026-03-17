@@ -39,6 +39,10 @@ public class MonsterBase : MonoBehaviour
     [HideInInspector] public Transform playerTransform;
     protected Node rootNode;
 
+
+    public bool isDie=false;
+
+    
     protected virtual void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -114,6 +118,17 @@ public class MonsterBase : MonoBehaviour
         {
             rootNode.Evaluate();
         }
+
+        if (isDie)
+        {
+            //看向玩家方向
+            if (playerTransform != null)
+            {
+                Vector3 lookPos = playerTransform.position;
+                lookPos.y = transform.position.y;
+                transform.LookAt(lookPos);
+            }
+        }
     }
 
     protected virtual void CheckAggroState()
@@ -145,7 +160,7 @@ public class MonsterBase : MonoBehaviour
 
     protected virtual void OnLostTarget()
     {
-        if (agent != null && agent.isActiveAndEnabled)
+        if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
             agent.ResetPath();
         }
@@ -203,7 +218,10 @@ public class MonsterBase : MonoBehaviour
 
         if (agent != null)
         {
-            agent.isStopped = true;
+            if (agent.isActiveAndEnabled && agent.isOnNavMesh)
+            {
+                agent.isStopped = true;
+            }
             agent.enabled = false;
         }
 
@@ -214,10 +232,13 @@ public class MonsterBase : MonoBehaviour
         if (ani != null)
         {
             ani.SetTrigger("Die");
+            isDie= true; 
+
+
         }
         else
         {
-            Destroy(gameObject);
+           // Destroy(gameObject);
         }
     }
 
