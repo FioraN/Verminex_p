@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TMPro;
 using PrototypeFPC;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
@@ -32,13 +33,19 @@ public sealed class PerkSelectionUI : MonoBehaviour
     private bool _isOpen;
     private GameObject _pendingPrefab;
 
-    private Canvas _canvas;
+    private Canvas _hostCanvas;
+    private GraphicRaycaster _raycaster;
+    private RectTransform _uiRoot;
     private RectTransform _cardListRoot;
     private RectTransform _gunSelectRoot;
     private Text _gunSelectTitle;
     private Button _gunAButton;
     private Button _gunBButton;
     private Button _refreshButton;
+    private Button _hoveredButton;
+    private EventSystem _eventSystem;
+
+    private static readonly List<RaycastResult> RaycastResults = new();
 
     private readonly List<PerkCardUI> _spawnedCards = new();
 
@@ -51,9 +58,38 @@ public sealed class PerkSelectionUI : MonoBehaviour
         SetOpen(false);
     }
 
+    public void SetHostCanvas(Canvas hostCanvas)
+    {
+        _hostCanvas = hostCanvas;
+
+        if (_uiRoot == null || _hostCanvas == null)
+            return;
+
+        if (_hostCanvas.renderMode == RenderMode.WorldSpace && _hostCanvas.worldCamera == null)
+            _hostCanvas.worldCamera = Camera.main;
+
+        _raycaster = _hostCanvas.GetComponent<GraphicRaycaster>();
+        if (_raycaster == null)
+            _raycaster = _hostCanvas.gameObject.AddComponent<GraphicRaycaster>();
+
+        EnsureEventSystem();
+
+        _uiRoot.SetParent(_hostCanvas.transform, false);
+        _uiRoot.SetAsLastSibling();
+    }
+
     public void Open()
     {
         if (_isOpen) return;
+        if (_hostCanvas == null)
+        {
+            Debug.LogWarning("[PerkSelectionUI] Host canvas is not assigned.");
+            return;
+        }
+
+        if (_uiRoot.parent != _hostCanvas.transform)
+            SetHostCanvas(_hostCanvas);
+
         SetOpen(true);
     }
 
@@ -63,21 +99,27 @@ public sealed class PerkSelectionUI : MonoBehaviour
         SetOpen(false);
     }
 
+    private void Update()
+    {
+        if (!_isOpen || _hostCanvas == null || _raycaster == null)
+            return;
+
+        EnsureEventSystem();
+        UpdateCenterScreenInteraction();
+    }
+
     private void SetOpen(bool open)
     {
         _isOpen = open;
-        _canvas.gameObject.SetActive(open);
+        if (_uiRoot != null)
+            _uiRoot.gameObject.SetActive(open);
 
         PerkSceneCanvasUI.IsFireBlocked = open;
 
-        Cursor.lockState = open ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = open;
-
-        if (fpcDependencies != null)
-            fpcDependencies.isInspecting = open;
-
         if (open)
             ShowCardList(forceRefresh: false);
+        else
+            SetHoveredButton(null);
     }
 
     private void ShowCardList()
@@ -348,25 +390,14 @@ public sealed class PerkSelectionUI : MonoBehaviour
 
     private void BuildPanel()
     {
-        var cgo = new GameObject("PerkSelectionCanvas");
-        DontDestroyOnLoad(cgo);
+        _uiRoot = NewRT("PerkSelectionRoot", transform);
+        Stretch(_uiRoot);
 
-        _canvas = cgo.AddComponent<Canvas>();
-        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _canvas.sortingOrder = 100;
-
-        var scaler = cgo.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        cgo.AddComponent<GraphicRaycaster>();
-
-        var dim = NewRT("Dimmer", cgo.transform);
+        var dim = NewRT("Dimmer", _uiRoot);
         Stretch(dim);
         dim.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.60f);
 
-        var panel = NewRT("MainPanel", cgo.transform);
+        var panel = NewRT("MainPanel", _uiRoot);
         panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
         panel.anchoredPosition = Vector2.zero;
         panel.sizeDelta = new Vector2(1000f, 740f);
@@ -427,7 +458,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
         body.offsetMin = new Vector2(0f, 0f);
         body.offsetMax = new Vector2(0f, -60f);
 
-        _cardListRoot = NewRT("CardListRoot", cgo.transform);
+        _cardListRoot = NewRT("CardListRoot", _uiRoot);
         Stretch(_cardListRoot);
 
         _gunSelectRoot = NewRT("GunSelectPanel", body);
@@ -531,6 +562,68 @@ public sealed class PerkSelectionUI : MonoBehaviour
         if (_font == null)
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         return _font;
+    }
+
+    private void EnsureEventSystem()
+    {
+        if (_eventSystem != null)
+            return;
+
+        _eventSystem = EventSystem.current;
+        if (_eventSystem != null)
+            return;
+
+        var go = new GameObject("EventSystem");
+        _eventSystem = go.AddComponent<EventSystem>();
+        go.AddComponent<StandaloneInputModule>();
+    }
+
+    private void UpdateCenterScreenInteraction()
+    {
+        if (_eventSystem == null)
+            return;
+
+        Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        var pointerData = new PointerEventData(_eventSystem)
+        {
+            position = screenCenter
+        };
+
+        RaycastResults.Clear();
+        _raycaster.Raycast(pointerData, RaycastResults);
+
+        Button targetButton = null;
+        for (int i = 0; i < RaycastResults.Count; i++)
+        {
+            var go = RaycastResults[i].gameObject;
+            if (go == null) continue;
+
+            targetButton = go.GetComponentInParent<Button>();
+            if (targetButton != null && targetButton.interactable && targetButton.gameObject.activeInHierarchy)
+                break;
+
+            targetButton = null;
+        }
+
+        SetHoveredButton(targetButton);
+
+        if (_hoveredButton != null && (Input.GetKeyDown(KeyCode.E) || Input.GetMouseButtonDown(0)))
+        {
+            _hoveredButton.onClick.Invoke();
+        }
+    }
+
+    private void SetHoveredButton(Button button)
+    {
+        if (_hoveredButton == button)
+            return;
+
+        _hoveredButton = button;
+
+        if (_eventSystem != null)
+        {
+            _eventSystem.SetSelectedGameObject(_hoveredButton != null ? _hoveredButton.gameObject : null);
+        }
     }
 
 }
