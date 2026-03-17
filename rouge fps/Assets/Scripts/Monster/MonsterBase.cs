@@ -5,6 +5,9 @@ using UnityEngine.AI;
 [RequireComponent(typeof(MonsterHealth))]
 public class MonsterBase : MonoBehaviour
 {
+
+   public bool isCanPatrol = true;
+
     [Header("Base Stats")]
     public MonsterType type;
 
