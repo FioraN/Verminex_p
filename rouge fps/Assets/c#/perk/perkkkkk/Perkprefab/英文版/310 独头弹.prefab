@@ -77,4 +77,6 @@ MonoBehaviour:
   flavorText: 
   description: The number of bullets per single shot is halved, significantly reducing
     bullet spread, and headshot multiplier is increased.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 74c2f21af0eeccc42935aa7a75098482, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

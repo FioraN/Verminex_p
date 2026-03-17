@@ -71,4 +71,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Bullets automatically track enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 7e22a15c8b4f35c46ac739f2982e85c4, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

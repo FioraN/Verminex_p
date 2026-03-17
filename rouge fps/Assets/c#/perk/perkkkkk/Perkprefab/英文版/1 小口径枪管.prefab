@@ -84,4 +84,7 @@ MonoBehaviour:
   flavorText: 
   description: Firearm range reduced, rate of fire greatly increased, damage decreased,
     some small caliber attachments unlocked
-  icon: {fileID: 21300000, guid: e96eb340ecbd9194ea19e2b0594e93bb, type: 3}
+  icon: {fileID: 21300000, guid: 836084e4e265eba44a02559d54b61a9c, type: 3}
+  changeGunUiPrefab: {fileID: 6544639340936233143, guid: 27a69853382c009438e846fedcdcd8d9,
+    type: 3}
+  changeGunImageTarget: 1

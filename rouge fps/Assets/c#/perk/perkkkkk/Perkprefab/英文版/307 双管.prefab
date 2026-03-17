@@ -73,4 +73,6 @@ MonoBehaviour:
   flavorText: 
   description: Magazine capacity changes to 2, and for each magazine capacity lost,
     the player gains a 10% damage bonus
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f5699fbc61c2e8d49ba1e8a294d1825f, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

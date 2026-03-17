@@ -76,4 +76,6 @@ MonoBehaviour:
   flavorText: 
   description: Killing an enemy unit with a mark will apply the mark to another random
     enemy unit
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f3ffd4bca629ada46adf3237bec4aad3, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

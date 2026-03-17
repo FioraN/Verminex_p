@@ -76,4 +76,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Restores n ammo rounds upon killing an enemy unit
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: cdb7a57a9381cab4eb4919511d3c4044, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

@@ -77,4 +77,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Bullets will apply a slow effect to enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 29a5e93002f0d7f4382c9f911d5c7620, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

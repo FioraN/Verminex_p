@@ -77,4 +77,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Bullets will apply a burning effect to enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 0b2c58cc42394284a8dd2c8037dede48, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

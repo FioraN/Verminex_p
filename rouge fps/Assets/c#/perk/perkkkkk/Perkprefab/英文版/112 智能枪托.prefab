@@ -80,4 +80,6 @@ MonoBehaviour:
   flavorText: 
   description: The number of stacks is recorded when hit, and when the stacks reach
     6, the next shot is considered a headshot.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 56e8ad56fcc5a26488821b87fe010b24, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

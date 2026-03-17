@@ -80,4 +80,6 @@ MonoBehaviour:
     - 208
   flavorText: 
   description: Causing additional injury to limbs and torso areas that are not protected
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 3558db21d19113843affe6d2e80bef32, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

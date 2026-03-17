@@ -77,4 +77,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Bullets will apply a poisoning effect to enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 121a27dfda65cd9429cd1276128fee1b, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

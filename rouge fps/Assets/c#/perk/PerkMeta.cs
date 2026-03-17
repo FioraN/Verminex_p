@@ -8,6 +8,15 @@ public sealed class PerkConditionGroup
     public List<string> anyOfPerkIds = new();
 }
 
+public enum PerkGunImageChangeTarget
+{
+    None,
+    Gun,
+    Grip,
+    Stock,
+    Scope
+}
+
 public sealed class PerkMeta : MonoBehaviour
 {
     [Header("身份信息")]
@@ -49,6 +58,13 @@ public sealed class PerkMeta : MonoBehaviour
 
     [Tooltip("Perk 在选择面板中显示的图标。不填则使用候选面板预制体上的默认图片。")]
     public Sprite icon;
+
+    [Header("选枪页 UI 替换")]
+    [Tooltip("当该字段不为空时，选中此 Perk 后会尝试用这个 UI 预制体覆盖选枪页中的对应槽位。")]
+    public GameObject changeGunUiPrefab;
+
+    [Tooltip("changeGunUiPrefab 要替换的目标槽位。")]
+    public PerkGunImageChangeTarget changeGunImageTarget = PerkGunImageChangeTarget.None;
 
     /// <summary>
     /// 获取最终生效 ID。

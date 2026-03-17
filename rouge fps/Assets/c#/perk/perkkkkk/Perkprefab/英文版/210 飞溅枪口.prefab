@@ -86,4 +86,6 @@ MonoBehaviour:
   flavorText: 
   description: Every 100 bullets fired, deal area damage to enemy units in front
     of the field of view
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8757eadbd19c6ac42b5a6aecf203b5f4, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

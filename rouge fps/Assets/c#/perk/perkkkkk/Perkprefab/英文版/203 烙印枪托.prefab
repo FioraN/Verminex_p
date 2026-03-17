@@ -79,4 +79,6 @@ MonoBehaviour:
   flavorText: 
   description: Bullets apply 1 stack of Mark on hit, and another barrel shot can
     detonate the Mark, causing additional damage based on the number of stacks
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 505ee273d3414f64f87905de34de17bb, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

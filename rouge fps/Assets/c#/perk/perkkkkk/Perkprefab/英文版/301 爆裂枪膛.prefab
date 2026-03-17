@@ -81,4 +81,6 @@ MonoBehaviour:
   flavorText: 
   description: Has a 20% chance to deal damage equal to 10% of its current health
     to itself, and deal damage once to all enemy units around it
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 0e6b6aa2a238d6746a6de700d0c40e78, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

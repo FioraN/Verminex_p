@@ -80,4 +80,6 @@ MonoBehaviour:
   flavorText: 
   description: The bullet explodes when it hits an enemy unit, causing area damage,
     and the weapon's firing rate and bullet speed decrease.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 945b5bc85d9e6fb4abfe2c1b49a689f5, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

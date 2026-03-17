@@ -69,4 +69,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: 4x Scope Attachment
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: b0dc8752a8e20c743815d127bcc8dda3, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

@@ -75,4 +75,6 @@ MonoBehaviour:
   flavorText: 
   description: Deals additional damage based on the enemy's number of abnormal status
     stacks; the more total abnormal status stacks, the higher the damage dealt.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a5542efcf67ad2c4b91ba4e2f55ca860, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

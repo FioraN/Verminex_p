@@ -73,4 +73,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Significantly reduce reload time, while increasing movement speed
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c85a27c6792763549b70cdf71cc86d81, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

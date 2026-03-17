@@ -79,4 +79,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: The bullet causes a small area explosion when hitting enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 3d1c760208440dc4983361566d5463e9, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

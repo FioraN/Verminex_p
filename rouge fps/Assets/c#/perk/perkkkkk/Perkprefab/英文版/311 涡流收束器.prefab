@@ -71,4 +71,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Significantly reduce the horizontal spread of bullets
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 4d97119ee1ae86d4b95090d1f40885e6, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

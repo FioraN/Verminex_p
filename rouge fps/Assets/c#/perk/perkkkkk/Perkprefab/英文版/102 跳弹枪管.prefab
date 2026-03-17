@@ -79,4 +79,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: After the bullet hits, it randomly attacks another enemy unit
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: dd7edd7ab1fa91f4a9e769310837979c, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

@@ -75,4 +75,6 @@ MonoBehaviour:
   flavorText: 
   description: The weapon switches to single-shot, manual feeding, unlocking some
     attachments
-  icon: {fileID: 21300000, guid: a72d910103e5fdd46ab14a08e851d616, type: 3}
+  icon: {fileID: 21300000, guid: 6f0138d8022f9494795c1ee85f3472c2, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

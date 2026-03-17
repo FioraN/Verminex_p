@@ -34,7 +34,6 @@ public sealed class PerkZoneTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (_used && oneTimeOnly) return;
         if (selectionUI == null) return;
 
         bool isPlayer = string.IsNullOrWhiteSpace(playerTag)
@@ -55,6 +54,19 @@ public sealed class PerkZoneTrigger : MonoBehaviour
             var renderer = GetComponent<Renderer>();
             if (renderer != null) renderer.enabled = false;
         }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (selectionUI == null) return;
+
+        bool isPlayer = string.IsNullOrWhiteSpace(playerTag)
+            || other.CompareTag(playerTag)
+            || other.transform.root.CompareTag(playerTag);
+
+        if (!isPlayer) return;
+
+        selectionUI.Close();
     }
 
     public void Reset()

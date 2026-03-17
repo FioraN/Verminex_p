@@ -75,4 +75,6 @@ MonoBehaviour:
   flavorText: 
   description: The weapon becomes automatic, uses magazine feeding, and unlocks some
     attachments
-  icon: {fileID: 21300000, guid: 55b3385f9d4d6a24085df38f6a2def91, type: 3}
+  icon: {fileID: 21300000, guid: 0adc0768d5d29324b9f837bf7d99ce56, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

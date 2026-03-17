@@ -71,4 +71,6 @@ MonoBehaviour:
   flavorText: 
   description: 'Magazine loading: The reload time is halved the second time; manual
     loading: adds 1 bullet every two reloads'
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2e7efe46c9764644fa5643a98d00e275, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

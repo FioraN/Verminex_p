@@ -74,4 +74,6 @@ MonoBehaviour:
   flavorText: 
   description: Bullets that hit marked enemy units will randomly apply one abnormal
     status to all other nearby enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: d13ba8513a1fe4a40b4483075ade88fa, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

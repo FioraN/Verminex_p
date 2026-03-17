@@ -1,9 +1,9 @@
-using System.Collections.Generic;
 using TMPro;
 using PrototypeFPC;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.Events;
 
 /// <summary>
 /// Perk selection panel controller.
@@ -30,6 +30,19 @@ public sealed class PerkSelectionUI : MonoBehaviour
     public float upperCardDistance = 220f;
     public float lowerCardDistance = 220f;
 
+    [Header("Gun Select Page")]
+    [Tooltip("Optional parent prefab for Gun A / Gun B selection. It must have a PerkGunSelectPageUI component.")]
+    public PerkGunSelectPageUI gunSelectPagePrefab;
+
+    [Tooltip("Offset of the Gun select page from screen center, using the same anchored-position units as centerCardOffset.")]
+    public Vector2 gunSelectPageOffset = Vector2.zero;
+
+    [Header("Crosshair Highlight")]
+    [Range(1f, 1.5f)] public float hoveredButtonBrightness = 1.18f;
+    [Range(1f, 1.25f)] public float hoveredButtonScale = 1.04f;
+    public Color gunSelectHoveredOutlineColor = Color.black;
+    [Min(0f)] public float gunSelectHoveredOutlineSize = 2f;
+
     private bool _isOpen;
     private GameObject _pendingPrefab;
 
@@ -38,16 +51,25 @@ public sealed class PerkSelectionUI : MonoBehaviour
     private RectTransform _uiRoot;
     private RectTransform _cardListRoot;
     private RectTransform _gunSelectRoot;
-    private Text _gunSelectTitle;
+    private RectTransform _defaultGunSelectSpawnPoint;
+    private PerkGunSelectPageUI _activeGunSelectPage;
+    private PerkGunSelectPageUI _instantiatedCustomGunSelectPage;
     private Button _gunAButton;
     private Button _gunBButton;
-    private Button _refreshButton;
+    private Button _boundGunAButton;
+    private Button _boundGunBButton;
+    private Button _boundBackButton;
     private Button _hoveredButton;
+    private Button _highlightedButton;
+    private Graphic[] _highlightedGraphics;
+    private Color[] _highlightedOriginalColors;
+    private Vector3 _highlightedOriginalScale = Vector3.one;
+    private readonly System.Collections.Generic.List<Outline> _highlightedOutlines = new();
     private EventSystem _eventSystem;
 
-    private static readonly List<RaycastResult> RaycastResults = new();
+    private static readonly System.Collections.Generic.List<RaycastResult> RaycastResults = new();
 
-    private readonly List<PerkCardUI> _spawnedCards = new();
+    private readonly System.Collections.Generic.List<PerkCardUI> _spawnedCards = new();
 
     private void Awake()
     {
@@ -129,6 +151,8 @@ public sealed class PerkSelectionUI : MonoBehaviour
 
     private void ShowCardList(bool forceRefresh)
     {
+        SetHoveredButton(null);
+        ResetGunSelectPagePreview();
         _pendingPrefab = null;
         _cardListRoot.gameObject.SetActive(true);
         _gunSelectRoot.gameObject.SetActive(false);
@@ -137,17 +161,12 @@ public sealed class PerkSelectionUI : MonoBehaviour
 
     private void ShowGunSelect(GameObject perkPrefab)
     {
+        SetHoveredButton(null);
         _pendingPrefab = perkPrefab;
         _cardListRoot.gameObject.SetActive(false);
         _gunSelectRoot.gameObject.SetActive(true);
 
-        if (_gunSelectTitle != null)
-        {
-            var meta = perkPrefab != null ? perkPrefab.GetComponent<PerkMeta>() : null;
-            string nameText = meta != null ? meta.EffectiveDisplayName : (perkPrefab != null ? perkPrefab.name : "");
-            _gunSelectTitle.text = $"Equip \"{nameText}\" To:";
-        }
-
+        RefreshGunSelectPagePreview(perkPrefab);
         RefreshGunSelectButtons();
     }
 
@@ -216,7 +235,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
     {
         ClearCards();
 
-        IReadOnlyList<GameObject> candidates = selectionRefresher != null
+        System.Collections.Generic.IReadOnlyList<GameObject> candidates = selectionRefresher != null
             ? selectionRefresher.RefreshCandidates(forceRefresh)
             : System.Array.Empty<GameObject>();
 
@@ -393,80 +412,59 @@ public sealed class PerkSelectionUI : MonoBehaviour
         _uiRoot = NewRT("PerkSelectionRoot", transform);
         Stretch(_uiRoot);
 
-        var dim = NewRT("Dimmer", _uiRoot);
-        Stretch(dim);
-        dim.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.60f);
-
-        var panel = NewRT("MainPanel", _uiRoot);
-        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
-        panel.anchoredPosition = Vector2.zero;
-        panel.sizeDelta = new Vector2(1000f, 740f);
-        panel.gameObject.AddComponent<Image>().color = new Color(0.07f, 0.08f, 0.10f, 0.97f);
-
-        var header = NewRT("Header", panel);
-        header.anchorMin = new Vector2(0f, 1f);
-        header.anchorMax = new Vector2(1f, 1f);
-        header.pivot = new Vector2(0.5f, 1f);
-        header.anchoredPosition = Vector2.zero;
-        header.sizeDelta = new Vector2(0f, 60f);
-        header.gameObject.AddComponent<Image>().color = new Color(0.12f, 0.13f, 0.16f, 1f);
-
-        var titleRT = NewRT("Title", header);
-        Stretch(titleRT);
-        titleRT.offsetMin = new Vector2(24f, 0f);
-        titleRT.offsetMax = new Vector2(-70f, 0f);
-        var titleTxt = titleRT.gameObject.AddComponent<Text>();
-        titleTxt.text = "Choose A Perk";
-        titleTxt.font = GetFont();
-        titleTxt.fontSize = 22;
-        titleTxt.color = new Color(0.85f, 0.85f, 0.85f, 1f);
-        titleTxt.alignment = TextAnchor.MiddleLeft;
-
-        var xRT = NewRT("CloseBtn", header);
-        xRT.anchorMin = new Vector2(1f, 0f);
-        xRT.anchorMax = new Vector2(1f, 1f);
-        xRT.pivot = new Vector2(1f, 0.5f);
-        xRT.anchoredPosition = Vector2.zero;
-        xRT.sizeDelta = new Vector2(60f, 0f);
-        xRT.gameObject.AddComponent<Image>().color = new Color(0.50f, 0.08f, 0.08f, 1f);
-        var xBtn = xRT.gameObject.AddComponent<Button>();
-        var xc = xBtn.colors;
-        xc.highlightedColor = new Color(0.78f, 0.12f, 0.12f, 1f);
-        xc.pressedColor = new Color(0.30f, 0.04f, 0.04f, 1f);
-        xBtn.colors = xc;
-        xBtn.onClick.AddListener(Close);
-        AddCentredText(xRT, "X", 20, Color.white);
-
-        var refreshRT = NewRT("RefreshBtn", header);
-        refreshRT.anchorMin = new Vector2(1f, 0f);
-        refreshRT.anchorMax = new Vector2(1f, 1f);
-        refreshRT.pivot = new Vector2(1f, 0.5f);
-        refreshRT.anchoredPosition = new Vector2(-66f, 0f);
-        refreshRT.sizeDelta = new Vector2(110f, 0f);
-        refreshRT.gameObject.AddComponent<Image>().color = new Color(0.16f, 0.26f, 0.52f, 1f);
-        _refreshButton = refreshRT.gameObject.AddComponent<Button>();
-        var rc = _refreshButton.colors;
-        rc.highlightedColor = new Color(0.24f, 0.36f, 0.66f, 1f);
-        rc.pressedColor = new Color(0.10f, 0.17f, 0.32f, 1f);
-        _refreshButton.colors = rc;
-        _refreshButton.onClick.AddListener(() => ShowCardList(forceRefresh: true));
-        AddCentredText(refreshRT, "Refresh", 16, Color.white);
-
-        var body = NewRT("Body", panel);
-        body.anchorMin = Vector2.zero;
-        body.anchorMax = Vector2.one;
-        body.offsetMin = new Vector2(0f, 0f);
-        body.offsetMax = new Vector2(0f, -60f);
-
         _cardListRoot = NewRT("CardListRoot", _uiRoot);
         Stretch(_cardListRoot);
 
-        _gunSelectRoot = NewRT("GunSelectPanel", body);
+        _gunSelectRoot = NewRT("GunSelectPanel", _uiRoot);
         Stretch(_gunSelectRoot);
-        BuildGunSelectPanel(_gunSelectRoot);
+
+        _defaultGunSelectSpawnPoint = NewRT("GunSelectSpawnPoint", _gunSelectRoot);
+        Stretch(_defaultGunSelectSpawnPoint);
+
+        BuildConfiguredGunSelectPanel();
     }
 
-    private void BuildGunSelectPanel(RectTransform parent)
+    private void BuildConfiguredGunSelectPanel()
+    {
+        _activeGunSelectPage = null;
+
+        if (TryBuildCustomGunSelectPanel())
+            return;
+
+        BuildFallbackGunSelectPanel(_defaultGunSelectSpawnPoint);
+    }
+
+    private bool TryBuildCustomGunSelectPanel()
+    {
+        if (gunSelectPagePrefab == null)
+            return false;
+
+        if (!gunSelectPagePrefab.IsComplete())
+        {
+            Debug.LogWarning("[PerkSelectionUI] Gun select page prefab is missing required button references. Falling back to code-built page.");
+            return false;
+        }
+
+        _instantiatedCustomGunSelectPage = Instantiate(gunSelectPagePrefab, _defaultGunSelectSpawnPoint);
+        _instantiatedCustomGunSelectPage.name = gunSelectPagePrefab.name;
+
+        RectTransform root = _instantiatedCustomGunSelectPage.Root;
+        if (root == null)
+        {
+            Debug.LogWarning("[PerkSelectionUI] Gun select page prefab has no RectTransform root. Falling back to code-built page.");
+            Destroy(_instantiatedCustomGunSelectPage.gameObject);
+            _instantiatedCustomGunSelectPage = null;
+            return false;
+        }
+
+        ApplyGunSelectPagePosition(root);
+
+        _activeGunSelectPage = _instantiatedCustomGunSelectPage;
+        BindGunSelectButtons(_activeGunSelectPage);
+        return true;
+    }
+
+    private void BuildFallbackGunSelectPanel(RectTransform parent)
     {
         var col = NewRT("Column", parent);
         col.anchorMin = col.anchorMax = col.pivot = new Vector2(0.5f, 0.5f);
@@ -481,23 +479,130 @@ public sealed class PerkSelectionUI : MonoBehaviour
         vlg.childControlHeight = true;
         col.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        var titleRT = NewRT("EquipTitle", col);
-        titleRT.gameObject.AddComponent<LayoutElement>().preferredHeight = 52f;
-        _gunSelectTitle = titleRT.gameObject.AddComponent<Text>();
-        _gunSelectTitle.font = GetFont();
-        _gunSelectTitle.fontSize = 20;
-        _gunSelectTitle.color = new Color(0.85f, 0.85f, 0.85f, 1f);
-        _gunSelectTitle.alignment = TextAnchor.MiddleCenter;
-        _gunSelectTitle.text = "Equip To:";
-
         _gunAButton = SpawnButton(col, "Gun  A", new Color(0.08f, 0.36f, 0.12f, 1f), 82f, 24);
-        _gunAButton.onClick.AddListener(() => OnGunSelected(0));
-
         _gunBButton = SpawnButton(col, "Gun  B", new Color(0.08f, 0.12f, 0.38f, 1f), 82f, 24);
-        _gunBButton.onClick.AddListener(() => OnGunSelected(1));
+        var btnBack = SpawnButton(col, "Back", new Color(0.22f, 0.08f, 0.08f, 1f), 54f, 16);
 
-        var btnBack = SpawnButton(col, "返回", new Color(0.22f, 0.08f, 0.08f, 1f), 54f, 16);
-        btnBack.onClick.AddListener(() => ShowCardList(forceRefresh: false));
+        var page = col.gameObject.AddComponent<PerkGunSelectPageUI>();
+        page.root = col;
+        page.gunAButton = _gunAButton;
+        page.gunBButton = _gunBButton;
+        page.backButton = btnBack;
+
+        ApplyGunSelectPagePosition(col);
+
+        _activeGunSelectPage = page;
+        BindGunSelectButtons(page);
+    }
+
+    private void ApplyGunSelectPagePosition(RectTransform rt)
+    {
+        if (rt == null)
+            return;
+
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = gunSelectPageOffset;
+    }
+
+    private void BindGunSelectButtons(PerkGunSelectPageUI page)
+    {
+        if (page == null || !page.IsComplete())
+            return;
+
+        RebindGunSelectButtons(page);
+    }
+
+    private void RefreshGunSelectPagePreview(GameObject perkPrefab)
+    {
+        if (_activeGunSelectPage == null)
+            return;
+
+        _activeGunSelectPage.ResetPreviewImages();
+        ApplyEquippedGunSelectPagePreviews();
+
+        var meta = perkPrefab != null ? perkPrefab.GetComponent<PerkMeta>() : null;
+        _activeGunSelectPage.ApplyPendingPerkPreview(meta);
+        RebindGunSelectButtons(_activeGunSelectPage);
+    }
+
+    private void ResetGunSelectPagePreview()
+    {
+        if (_activeGunSelectPage == null)
+            return;
+
+        _activeGunSelectPage.ResetPreviewImages();
+    }
+
+    private void ApplyEquippedGunSelectPagePreviews()
+    {
+        if (_activeGunSelectPage == null || perkManager == null)
+            return;
+
+        ApplyEquippedGunSelectPagePreviewsForGun(0);
+        ApplyEquippedGunSelectPagePreviewsForGun(1);
+    }
+
+    private void ApplyEquippedGunSelectPagePreviewsForGun(int gunIndex)
+    {
+        var list = perkManager.GetPerkList(gunIndex);
+        if (list == null)
+            return;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var perk = list[i];
+            if (perk == null)
+                continue;
+
+            var meta = perk.GetComponent<PerkMeta>();
+            _activeGunSelectPage.ApplyEquippedPerkPreview(meta, gunIndex);
+        }
+    }
+
+    private void RebindGunSelectButtons(PerkGunSelectPageUI page)
+    {
+        if (page == null)
+            return;
+
+        UnityAction gunAAction = HandleGunASelected;
+        UnityAction gunBAction = HandleGunBSelected;
+        UnityAction backAction = HandleBackSelected;
+
+        if (_boundGunAButton != null)
+            _boundGunAButton.onClick.RemoveListener(gunAAction);
+        if (_boundGunBButton != null)
+            _boundGunBButton.onClick.RemoveListener(gunBAction);
+        if (_boundBackButton != null)
+            _boundBackButton.onClick.RemoveListener(backAction);
+
+        _boundGunAButton = page.CurrentGunAButton;
+        _boundGunBButton = page.CurrentGunBButton;
+        _boundBackButton = page.backButton;
+
+        if (_boundGunAButton != null)
+            _boundGunAButton.onClick.AddListener(gunAAction);
+        if (_boundGunBButton != null)
+            _boundGunBButton.onClick.AddListener(gunBAction);
+        if (_boundBackButton != null)
+            _boundBackButton.onClick.AddListener(backAction);
+
+        _gunAButton = _boundGunAButton;
+        _gunBButton = _boundGunBButton;
+    }
+
+    private void HandleGunASelected()
+    {
+        OnGunSelected(0);
+    }
+
+    private void HandleGunBSelected()
+    {
+        OnGunSelected(1);
+    }
+
+    private void HandleBackSelected()
+    {
+        ShowCardList(forceRefresh: false);
     }
 
     private static RectTransform NewRT(string name, Transform parent)
@@ -541,18 +646,6 @@ public sealed class PerkSelectionUI : MonoBehaviour
         txt.alignment = TextAnchor.MiddleCenter;
 
         return btn;
-    }
-
-    private static void AddCentredText(RectTransform parent, string text, int size, Color color)
-    {
-        var rt = NewRT("Label", parent);
-        Stretch(rt);
-        var txt = rt.gameObject.AddComponent<Text>();
-        txt.text = text;
-        txt.font = GetFont();
-        txt.fontSize = size;
-        txt.color = color;
-        txt.alignment = TextAnchor.MiddleCenter;
     }
 
     private static Font _font;
@@ -618,12 +711,93 @@ public sealed class PerkSelectionUI : MonoBehaviour
         if (_hoveredButton == button)
             return;
 
+        ClearHoveredButtonVisual();
         _hoveredButton = button;
 
         if (_eventSystem != null)
         {
             _eventSystem.SetSelectedGameObject(_hoveredButton != null ? _hoveredButton.gameObject : null);
         }
+
+        ApplyHoveredButtonVisual(_hoveredButton);
     }
 
+    private void ApplyHoveredButtonVisual(Button button)
+    {
+        if (button == null)
+            return;
+
+        _highlightedButton = button;
+        _highlightedGraphics = button.GetComponentsInChildren<Graphic>(true);
+        _highlightedOriginalColors = new Color[_highlightedGraphics.Length];
+
+        for (int i = 0; i < _highlightedGraphics.Length; i++)
+        {
+            var graphic = _highlightedGraphics[i];
+            if (graphic == null)
+                continue;
+
+            _highlightedOriginalColors[i] = graphic.color;
+            graphic.color = Brighten(_highlightedOriginalColors[i], hoveredButtonBrightness);
+        }
+
+        _highlightedOriginalScale = button.transform.localScale;
+        button.transform.localScale = _highlightedOriginalScale * hoveredButtonScale;
+
+        if (button.transform.IsChildOf(_gunSelectRoot))
+        {
+            for (int i = 0; i < _highlightedGraphics.Length; i++)
+            {
+                var graphic = _highlightedGraphics[i];
+                if (graphic == null)
+                    continue;
+
+                var outline = graphic.gameObject.AddComponent<Outline>();
+                outline.effectColor = gunSelectHoveredOutlineColor;
+                outline.effectDistance = Vector2.one * gunSelectHoveredOutlineSize;
+                outline.useGraphicAlpha = true;
+                _highlightedOutlines.Add(outline);
+            }
+        }
+    }
+
+    private void ClearHoveredButtonVisual()
+    {
+        if (_highlightedButton == null)
+            return;
+
+        if (_highlightedGraphics != null && _highlightedOriginalColors != null)
+        {
+            int count = Mathf.Min(_highlightedGraphics.Length, _highlightedOriginalColors.Length);
+            for (int i = 0; i < count; i++)
+            {
+                var graphic = _highlightedGraphics[i];
+                if (graphic != null)
+                    graphic.color = _highlightedOriginalColors[i];
+            }
+        }
+
+        for (int i = 0; i < _highlightedOutlines.Count; i++)
+        {
+            if (_highlightedOutlines[i] != null)
+                Destroy(_highlightedOutlines[i]);
+        }
+
+        _highlightedButton.transform.localScale = _highlightedOriginalScale;
+        _highlightedButton = null;
+        _highlightedGraphics = null;
+        _highlightedOriginalColors = null;
+        _highlightedOriginalScale = Vector3.one;
+        _highlightedOutlines.Clear();
+    }
+
+    private static Color Brighten(Color color, float factor)
+    {
+        return new Color(
+            Mathf.Clamp01(color.r * factor),
+            Mathf.Clamp01(color.g * factor),
+            Mathf.Clamp01(color.b * factor),
+            color.a
+        );
+    }
 }

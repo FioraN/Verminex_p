@@ -88,4 +88,6 @@ MonoBehaviour:
   flavorText: 
   description: Bullet damage is increased, but damage is delayed after hitting the
     target
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a6e992dcc29564f4fb93af1c8c8f80d4, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

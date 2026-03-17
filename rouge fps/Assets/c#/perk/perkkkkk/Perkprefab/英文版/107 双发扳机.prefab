@@ -71,4 +71,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: The weapon fires 2 bullets per shot
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 40b017771614e814d810fca96a56958f, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

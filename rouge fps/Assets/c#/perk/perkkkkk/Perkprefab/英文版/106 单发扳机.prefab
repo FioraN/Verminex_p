@@ -78,4 +78,6 @@ MonoBehaviour:
   flavorText: 
   description: Weapon firing mode changes to single shot, locking the rate of fire,
     and the lost rate of fire is converted into bullet damage increase
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 4731ceb593bae0a4dbc1d771a3805e2f, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

@@ -77,4 +77,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Bullets will apply an electric shock effect to enemy units
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c9a1181b43b63f44d8447b2cc2fa032d, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

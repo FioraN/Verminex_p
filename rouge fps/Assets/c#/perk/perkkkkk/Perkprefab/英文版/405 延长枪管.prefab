@@ -70,4 +70,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Increase bullet range and reduce damage drop-off caused by range
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 80f5002a3d7b92944b1d22fd163b908a, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

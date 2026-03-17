@@ -74,4 +74,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Magazine capacity doubled, reload time increased
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8fbbf8bbf1a240f4abc5995a2853c305, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

@@ -79,4 +79,6 @@ MonoBehaviour:
   flavorText: 
   description: When hitting an enemy unit, there is a 25% chance to apply an additional
     abnormal status (burn/poison/slow/shock)
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 6b2c958ef872a8b47a72366f4ef1180c, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

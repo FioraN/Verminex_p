@@ -73,4 +73,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: The lower the health, the higher the damage dealt.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 9acf2705f5d81004f9e1456ec26bc80b, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0

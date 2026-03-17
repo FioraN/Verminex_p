@@ -74,4 +74,6 @@ MonoBehaviour:
   mutuallyExclusivePerkGroups: []
   flavorText: 
   description: Magazine capacity doubled
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 152db5d87f116de48ad9d33517014a93, type: 3}
+  changeGunImage: {fileID: 0}
+  changeGunImageTarget: 0
