@@ -8,6 +8,14 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
     [Min(0f)] public float hp = 100f;
     [SerializeField] private bool isDeadDebug;
 
+    [Header("Experience Drop")]
+    public ExperienceOrb experienceOrbPrefab;
+    [Min(1)] public int totalExperience = 1;
+    [Min(1)] public int minOrbCount = 1;
+    [Min(1)] public int maxOrbCount = 1;
+    public Vector3 experienceSpawnOffset = new Vector3(0f, 1f, 0f);
+    [Min(0f)] public float experienceScatterRadius = 0.6f;
+
     [Header("Hit UI")]
     public bool autoFindHitUI = true;
 
@@ -153,6 +161,7 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
 
         _didDie = true;
         SyncDebugState();
+        SpawnExperienceOrbs();
         Died?.Invoke(info);
 
         CombatEventHub.RaiseKill(new CombatEventHub.KillEvent
@@ -166,5 +175,32 @@ public class MonsterHealth : MonoBehaviour, IDamageable, IDamageableEx, IDamagea
     private void SyncDebugState()
     {
         isDeadDebug = IsDead;
+    }
+
+    private void SpawnExperienceOrbs()
+    {
+        if (experienceOrbPrefab == null)
+            return;
+
+        int safeMin = Mathf.Max(1, minOrbCount);
+        int safeMax = Mathf.Max(safeMin, maxOrbCount);
+        int orbCount = UnityEngine.Random.Range(safeMin, safeMax + 1);
+        int safeTotal = Mathf.Max(1, totalExperience);
+        Vector3 origin = transform.position + experienceSpawnOffset;
+
+        for (int i = 0; i < orbCount; i++)
+        {
+            Vector2 circle = UnityEngine.Random.insideUnitCircle * experienceScatterRadius;
+            Vector3 position = origin + new Vector3(circle.x, 0f, circle.y);
+            ExperienceOrb orb = Instantiate(experienceOrbPrefab, position, Quaternion.identity);
+            orb.experienceValue = GetOrbValue(i, orbCount, safeTotal);
+        }
+    }
+
+    private static int GetOrbValue(int index, int count, int total)
+    {
+        int baseValue = total / count;
+        int remainder = total % count;
+        return baseValue + (index < remainder ? 1 : 0);
     }
 }
