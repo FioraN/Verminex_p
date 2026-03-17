@@ -2,55 +2,57 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 开火模式 + 装填模式切换 Perk
-/// 
-/// 只做两件事：
-/// 1. 修改开火模式（单发 / 连发）
-/// 2. 修改装填模式（逐发 / 弹匣）
-/// 
-/// Perk 属于哪把枪，由 PerkManager 的 Perk 列表决定
-/// Perk 等级只存在于 PerkMeta 中，本脚本不使用等级
+/// Switches fire mode / reload mode and can optionally override the gun's base magazine size.
+/// The owning gun is resolved from PerkManager's selected perk lists.
 /// </summary>
 public sealed class Perk_FireAndReloadMode : MonoBehaviour
 {
-    [Header("前置条件")]
-    [Tooltip("前置条件不满足时是否自动禁用该 Perk")]
+    [Header("Prerequisite")]
+    [Tooltip("Disable this perk automatically when prerequisites are not met.")]
     public bool disableIfPrereqMissing = true;
 
-    [Header("开火模式")]
-    [Tooltip("是否覆盖开火模式")]
+    [Header("Fire Mode")]
+    [Tooltip("Whether to override the gun fire mode.")]
     public bool overrideFireMode = true;
 
-    [Tooltip("目标开火模式（单发 / 连发）")]
+    [Tooltip("Target fire mode.")]
     public CameraGunChannel.FireMode fireMode = CameraGunChannel.FireMode.Semi;
 
-    [Header("装填模式")]
-    [Tooltip("是否覆盖装填模式")]
+    [Header("Reload Type")]
+    [Tooltip("Whether to override the reload type.")]
     public bool overrideReloadType = true;
 
-    [Tooltip("目标装填模式（逐发 / 弹匣）")]
+    [Tooltip("Target reload type.")]
     public GunAmmo.ReloadType reloadType = GunAmmo.ReloadType.Magazine;
+
+    [Header("Base Magazine")]
+    [Tooltip("Whether to override GunStatContext.baseMagazineSize. Falls back to GunAmmo.magazineSize when no GunStatContext exists.")]
+    public bool overrideBaseMagazineSize = false;
+
+    [Tooltip("Target base magazine size.")]
+    [Min(1)] public int baseMagazineSize = 12;
 
     private PerkManager _perkManager;
 
-    /// <summary>
-    /// 保存枪的原始状态，用于移除 Perk 时恢复
-    /// </summary>
     private struct GunState
     {
         public CameraGunChannel.FireMode fireMode;
     }
 
-    /// <summary>
-    /// 保存弹药系统原始状态
-    /// </summary>
     private struct AmmoState
     {
         public GunAmmo.ReloadType reloadType;
+        public int magazineSize;
+    }
+
+    private struct StatContextState
+    {
+        public int baseMagazineSize;
     }
 
     private readonly Dictionary<CameraGunChannel, GunState> _savedGun = new();
     private readonly Dictionary<GunAmmo, AmmoState> _savedAmmo = new();
+    private readonly Dictionary<GunStatContext, StatContextState> _savedCtx = new();
     private bool _applied;
 
     private void Awake()
@@ -61,18 +63,16 @@ public sealed class Perk_FireAndReloadMode : MonoBehaviour
     private void OnEnable()
     {
         _perkManager ??= FindFirstObjectByType<PerkManager>();
-        if (_perkManager == null) return;
+        if (_perkManager == null)
+            return;
 
-        // 判断该 Perk 属于哪把枪
         int gunIndex = ResolveGunIndexFromManager();
         if (gunIndex < 0)
         {
-            // 尚未被加入任何枪的 Perk 列表
             enabled = false;
             return;
         }
 
-        // 前置条件检查（如果有 PerkMeta）
         if (disableIfPrereqMissing && !_perkManager.PrerequisitesMet(gameObject, gunIndex))
         {
             enabled = false;
@@ -92,9 +92,6 @@ public sealed class Perk_FireAndReloadMode : MonoBehaviour
         Revert();
     }
 
-    /// <summary>
-    /// 根据 PerkManager 的 Perk 列表判断该 Perk 属于哪把枪
-    /// </summary>
     private int ResolveGunIndexFromManager()
     {
         if (_perkManager.selectedPerksGunA.Contains(this)) return 0;
@@ -102,49 +99,65 @@ public sealed class Perk_FireAndReloadMode : MonoBehaviour
         return -1;
     }
 
-    /// <summary>
-    /// 应用开火 / 装填模式修改
-    /// </summary>
     private void Apply(int gunIndex)
     {
-        if (_applied) return;
+        if (_applied)
+            return;
 
         var gunRefs = _perkManager.GetGun(gunIndex);
         var gun = gunRefs != null ? gunRefs.cameraGunChannel : null;
-        if (gun == null) return;
+        if (gun == null)
+            return;
 
         var ammo = gunRefs.gunAmmo != null ? gunRefs.gunAmmo : gun.ammo;
+        var ctx = gun.GetComponent<GunStatContext>() ?? gun.GetComponentInParent<GunStatContext>();
 
         _savedGun.Clear();
         _savedAmmo.Clear();
+        _savedCtx.Clear();
 
         SaveGunIfNeeded(gun);
-        if (ammo != null) SaveAmmoIfNeeded(ammo);
+        if (ammo != null)
+            SaveAmmoIfNeeded(ammo);
+        if (ctx != null)
+            SaveCtxIfNeeded(ctx);
 
         if (overrideFireMode)
-        {
             gun.fireMode = fireMode;
-        }
 
         if (ammo != null && overrideReloadType)
-        {
             ammo.reloadType = reloadType;
+
+        if (overrideBaseMagazineSize)
+        {
+            int targetMagazineSize = Mathf.Max(1, baseMagazineSize);
+
+            if (ctx != null)
+            {
+                ctx.baseMagazineSize = targetMagazineSize;
+                ctx.ForceRebuildNow();
+            }
+            else if (ammo != null)
+            {
+                ammo.magazineSize = targetMagazineSize;
+                ammo.ammoInMag = Mathf.Min(ammo.ammoInMag, ammo.magazineSize);
+                ammo.OnAmmoChanged?.Invoke(ammo.ammoInMag, ammo.ammoReserve);
+            }
         }
 
         _applied = true;
     }
 
-    /// <summary>
-    /// 恢复原始状态
-    /// </summary>
     private void Revert()
     {
-        if (!_applied) return;
+        if (!_applied)
+            return;
 
         foreach (var kv in _savedGun)
         {
             var gun = kv.Key;
-            if (gun == null) continue;
+            if (gun == null)
+                continue;
 
             gun.fireMode = kv.Value.fireMode;
         }
@@ -152,23 +165,35 @@ public sealed class Perk_FireAndReloadMode : MonoBehaviour
         foreach (var kv in _savedAmmo)
         {
             var ammo = kv.Key;
-            if (ammo == null) continue;
+            if (ammo == null)
+                continue;
 
             ammo.reloadType = kv.Value.reloadType;
+            ammo.magazineSize = Mathf.Max(1, kv.Value.magazineSize);
+            ammo.ammoInMag = Mathf.Min(ammo.ammoInMag, ammo.magazineSize);
+            ammo.OnAmmoChanged?.Invoke(ammo.ammoInMag, ammo.ammoReserve);
+        }
+
+        foreach (var kv in _savedCtx)
+        {
+            var ctx = kv.Key;
+            if (ctx == null)
+                continue;
+
+            ctx.baseMagazineSize = Mathf.Max(1, kv.Value.baseMagazineSize);
+            ctx.ForceRebuildNow();
         }
 
         _savedGun.Clear();
         _savedAmmo.Clear();
+        _savedCtx.Clear();
         _applied = false;
     }
 
-    /// <summary>
-    /// 保存枪的原始开火模式
-    /// </summary>
     private void SaveGunIfNeeded(CameraGunChannel gun)
     {
-        if (gun == null) return;
-        if (_savedGun.ContainsKey(gun)) return;
+        if (gun == null || _savedGun.ContainsKey(gun))
+            return;
 
         _savedGun.Add(gun, new GunState
         {
@@ -176,17 +201,26 @@ public sealed class Perk_FireAndReloadMode : MonoBehaviour
         });
     }
 
-    /// <summary>
-    /// 保存弹药系统原始装填模式
-    /// </summary>
     private void SaveAmmoIfNeeded(GunAmmo ammo)
     {
-        if (ammo == null) return;
-        if (_savedAmmo.ContainsKey(ammo)) return;
+        if (ammo == null || _savedAmmo.ContainsKey(ammo))
+            return;
 
         _savedAmmo.Add(ammo, new AmmoState
         {
-            reloadType = ammo.reloadType
+            reloadType = ammo.reloadType,
+            magazineSize = Mathf.Max(1, ammo.magazineSize)
+        });
+    }
+
+    private void SaveCtxIfNeeded(GunStatContext ctx)
+    {
+        if (ctx == null || _savedCtx.ContainsKey(ctx))
+            return;
+
+        _savedCtx.Add(ctx, new StatContextState
+        {
+            baseMagazineSize = Mathf.Max(1, ctx.baseMagazineSize)
         });
     }
 }

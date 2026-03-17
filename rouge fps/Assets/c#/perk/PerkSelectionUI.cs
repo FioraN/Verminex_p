@@ -37,6 +37,10 @@ public sealed class PerkSelectionUI : MonoBehaviour
     [Tooltip("Offset of the Gun select page from screen center, using the same anchored-position units as centerCardOffset.")]
     public Vector2 gunSelectPageOffset = Vector2.zero;
 
+    [Header("Gun Select Display")]
+    [Tooltip("Optional always-on display copy controller for the Gun select UI.")]
+    public PerkGunSelectDisplayUI gunSelectDisplayUI;
+
     [Header("Crosshair Highlight")]
     [Range(1f, 1.5f)] public float hoveredButtonBrightness = 1.18f;
     [Range(1f, 1.25f)] public float hoveredButtonScale = 1.04f;
@@ -75,6 +79,9 @@ public sealed class PerkSelectionUI : MonoBehaviour
     {
         if (playerExperience == null)
             playerExperience = FindFirstObjectByType<PlayerExperience>();
+
+        if (gunSelectDisplayUI == null)
+            gunSelectDisplayUI = FindFirstObjectByType<PerkGunSelectDisplayUI>();
 
         BuildPanel();
         SetOpen(false);
@@ -141,7 +148,11 @@ public sealed class PerkSelectionUI : MonoBehaviour
         if (open)
             ShowCardList(forceRefresh: false);
         else
+        {
+            if (gunSelectDisplayUI != null)
+                gunSelectDisplayUI.ClearPendingPreview();
             SetHoveredButton(null);
+        }
     }
 
     private void ShowCardList()
@@ -152,7 +163,8 @@ public sealed class PerkSelectionUI : MonoBehaviour
     private void ShowCardList(bool forceRefresh)
     {
         SetHoveredButton(null);
-        ResetGunSelectPagePreview();
+        if (gunSelectDisplayUI != null)
+            gunSelectDisplayUI.ClearPendingPreview();
         _pendingPrefab = null;
         _cardListRoot.gameObject.SetActive(true);
         _gunSelectRoot.gameObject.SetActive(false);
@@ -166,7 +178,9 @@ public sealed class PerkSelectionUI : MonoBehaviour
         _cardListRoot.gameObject.SetActive(false);
         _gunSelectRoot.gameObject.SetActive(true);
 
-        RefreshGunSelectPagePreview(perkPrefab);
+        RefreshActiveGunSelectPagePreview();
+        if (gunSelectDisplayUI != null)
+            gunSelectDisplayUI.SetPendingPreview(perkPrefab);
         RefreshGunSelectButtons();
     }
 
@@ -512,37 +526,29 @@ public sealed class PerkSelectionUI : MonoBehaviour
         RebindGunSelectButtons(page);
     }
 
-    private void RefreshGunSelectPagePreview(GameObject perkPrefab)
+    private void RefreshActiveGunSelectPagePreview()
     {
         if (_activeGunSelectPage == null)
             return;
 
         _activeGunSelectPage.ResetPreviewImages();
-        ApplyEquippedGunSelectPagePreviews();
+        ApplyEquippedGunSelectPagePreviews(_activeGunSelectPage);
 
-        var meta = perkPrefab != null ? perkPrefab.GetComponent<PerkMeta>() : null;
+        var meta = _pendingPrefab != null ? _pendingPrefab.GetComponent<PerkMeta>() : null;
         _activeGunSelectPage.ApplyPendingPerkPreview(meta);
         RebindGunSelectButtons(_activeGunSelectPage);
     }
 
-    private void ResetGunSelectPagePreview()
+    private void ApplyEquippedGunSelectPagePreviews(PerkGunSelectPageUI targetPage)
     {
-        if (_activeGunSelectPage == null)
+        if (targetPage == null || perkManager == null)
             return;
 
-        _activeGunSelectPage.ResetPreviewImages();
+        ApplyEquippedGunSelectPagePreviewsForGun(targetPage, 0);
+        ApplyEquippedGunSelectPagePreviewsForGun(targetPage, 1);
     }
 
-    private void ApplyEquippedGunSelectPagePreviews()
-    {
-        if (_activeGunSelectPage == null || perkManager == null)
-            return;
-
-        ApplyEquippedGunSelectPagePreviewsForGun(0);
-        ApplyEquippedGunSelectPagePreviewsForGun(1);
-    }
-
-    private void ApplyEquippedGunSelectPagePreviewsForGun(int gunIndex)
+    private void ApplyEquippedGunSelectPagePreviewsForGun(PerkGunSelectPageUI targetPage, int gunIndex)
     {
         var list = perkManager.GetPerkList(gunIndex);
         if (list == null)
@@ -555,7 +561,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
                 continue;
 
             var meta = perk.GetComponent<PerkMeta>();
-            _activeGunSelectPage.ApplyEquippedPerkPreview(meta, gunIndex);
+            targetPage.ApplyEquippedPerkPreview(meta, gunIndex);
         }
     }
 

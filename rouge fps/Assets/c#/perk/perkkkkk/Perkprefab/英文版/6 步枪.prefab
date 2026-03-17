@@ -50,6 +50,8 @@ MonoBehaviour:
   fireMode: 1
   overrideReloadType: 1
   reloadType: 0
+  overrideBaseMagazineSize: 1
+  baseMagazineSize: 30
 --- !u!114 &-1685635901580961934
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76,5 +78,5 @@ MonoBehaviour:
   description: The weapon becomes automatic, uses magazine feeding, and unlocks some
     attachments
   icon: {fileID: 21300000, guid: 0adc0768d5d29324b9f837bf7d99ce56, type: 3}
-  changeGunImage: {fileID: 0}
+  changeGunUiPrefab: {fileID: 0}
   changeGunImageTarget: 0

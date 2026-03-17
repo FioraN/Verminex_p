@@ -46,9 +46,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   setDamage: 1
-  damage: 10
+  damage: 13
   setMaxRange: 1
-  maxRange: 200
+  maxRange: 50
   setFireRate: 1
   fireRate: 10
   setSemiFireCooldown: 1

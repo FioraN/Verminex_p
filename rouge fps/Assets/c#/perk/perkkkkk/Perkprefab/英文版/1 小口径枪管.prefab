@@ -48,7 +48,7 @@ MonoBehaviour:
   setDamage: 1
   damage: 10
   setMaxRange: 1
-  maxRange: 200
+  maxRange: 20
   setFireRate: 1
   fireRate: 10
   setSemiFireCooldown: 1

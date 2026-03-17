@@ -45,9 +45,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94e456a975dd71f46bd1c3e3f4fafb69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pelletsPerShot: 6
+  pelletsPerShot: 8
   keepTotalDamageConstant: 1
   totalDamageMultiplier: 1
+  overrideMaxRange: 1
+  maxRange: 15
+  overrideBulletSpeed: 0
+  bulletSpeed: 80
   priority: 0
 --- !u!114 &-1120498644300940196
 MonoBehaviour:
