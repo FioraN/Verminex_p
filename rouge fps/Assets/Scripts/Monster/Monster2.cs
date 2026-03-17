@@ -27,7 +27,7 @@ public class Monster2 : MonsterBase
         if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
             transform.position = hit.position;
 
-        if (PatrolPointManager.Instance != null)
+        if (PatrolPointManager.Instance != null&&isCanPatrol)
             patrolPoints = PatrolPointManager.Instance.GetAllPatrolPoints().ToList();
         else
             patrolPoints = new List<Transform>();
