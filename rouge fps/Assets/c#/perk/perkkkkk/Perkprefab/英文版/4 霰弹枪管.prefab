@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8185000888211541788}
   - component: {fileID: -1120498644300940196}
   - component: {fileID: -736205690217594475}
+  - component: {fileID: 4872254368861836647}
   m_Layer: 0
   m_Name: "4 \u9730\u5F39\u67AA\u7BA1"
   m_TagString: Untagged
@@ -99,4 +100,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiPrefab: {fileID: 5721789934697871332, guid: c51a8fdb604cd6444b01896ac46ef44e,
+    type: 3}
+--- !u!114 &4872254368861836647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8647037713882437576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 089d9541ab12ae447b6bb3d6c344527a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gunAModelPrefab: {fileID: 1540408967912815568, guid: 4dd4d0c03cfccec478e89a64d5ec560c,
+    type: 3}
+  gunBModelPrefab: {fileID: 8330979415686874726, guid: d678269a09146e244a9639b3b919adfd,
     type: 3}

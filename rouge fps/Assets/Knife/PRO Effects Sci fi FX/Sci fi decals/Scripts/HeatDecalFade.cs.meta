@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8c549e9b5d90e8740b274de24fb5beda
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176115
+  packageName: 'PRO Effects: Sci-fi Shooter FX'
+  packageVersion: 1.1
+  assetPath: Assets/Knife/PRO Effects Sci fi FX/Sci fi decals/Scripts/HeatDecalFade.cs
+  uploadId: 585136

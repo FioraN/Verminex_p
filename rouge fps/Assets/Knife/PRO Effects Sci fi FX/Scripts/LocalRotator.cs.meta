@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 35a8abc3a74a2f642b6903d134cc064d
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176115
+  packageName: 'PRO Effects: Sci-fi Shooter FX'
+  packageVersion: 1.1
+  assetPath: Assets/Knife/PRO Effects Sci fi FX/Scripts/LocalRotator.cs
+  uploadId: 585136

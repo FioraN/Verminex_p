@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 0645c323aa870b84b8a9adcb4bf21023
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176115
+  packageName: 'PRO Effects: Sci-fi Shooter FX'
+  packageVersion: 1.1
+  assetPath: Assets/Knife/PRO Effects Sci fi FX/Demo/Scripts/ICollisionHandler.cs
+  uploadId: 585136

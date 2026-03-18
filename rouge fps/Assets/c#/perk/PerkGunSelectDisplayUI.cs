@@ -233,9 +233,7 @@ public sealed class PerkGunSelectDisplayUI : MonoBehaviour
 
             RectTransform instanceRoot = instance.transform as RectTransform;
             if (instanceRoot != null)
-            {
                 instanceRoot.anchoredPosition += perkWidgetSpacing * widgetIndex;
-            }
 
             MakeWidgetNonInteractive(instance);
 
@@ -260,7 +258,7 @@ public sealed class PerkGunSelectDisplayUI : MonoBehaviour
         rt.localRotation = _baseLocalRotation * Quaternion.Euler(0f, 0f, displayRotationZ);
     }
 
-    private void ApplyOverlayTransforms(System.Collections.Generic.List<OverlayInstanceState> states)
+    private static void ApplyOverlayTransforms(System.Collections.Generic.List<OverlayInstanceState> states)
     {
         if (states == null)
             return;

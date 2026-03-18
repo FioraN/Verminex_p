@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 5697ff3d49cc8164a8d87508ffe05b61
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176115
+  packageName: 'PRO Effects: Sci-fi Shooter FX'
+  packageVersion: 1.1
+  assetPath: Assets/Knife/PRO Effects Sci fi FX/Demo/Scripts/ITargetContainer.cs
+  uploadId: 585136

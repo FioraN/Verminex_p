@@ -41,6 +41,15 @@ public sealed class PerkSelectionUI : MonoBehaviour
     [Tooltip("Optional always-on display copy controller for the Gun select UI.")]
     public PerkGunSelectDisplayUI gunSelectDisplayUI;
 
+    [Header("Upgrade Points Display")]
+    [Tooltip("Anchored position of the copied upgrade-points UI from screen center.")]
+    public Vector2 upgradePointsDisplayOffset = Vector2.zero;
+    public TMP_FontAsset upgradePointsFont;
+    public string upgradePointsPrefix = "Upgrade Points Left: ";
+    public float upgradePointsFontSize = 28f;
+    public FontStyles upgradePointsFontStyle = FontStyles.Bold;
+    public Color upgradePointsTextColor = Color.white;
+
     [Header("Crosshair Highlight")]
     [Range(1f, 1.5f)] public float hoveredButtonBrightness = 1.18f;
     [Range(1f, 1.25f)] public float hoveredButtonScale = 1.04f;
@@ -55,6 +64,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
     private RectTransform _uiRoot;
     private RectTransform _cardListRoot;
     private RectTransform _gunSelectRoot;
+    private RectTransform _upgradePointsTextRoot;
     private RectTransform _defaultGunSelectSpawnPoint;
     private PerkGunSelectPageUI _activeGunSelectPage;
     private PerkGunSelectPageUI _instantiatedCustomGunSelectPage;
@@ -70,6 +80,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
     private Vector3 _highlightedOriginalScale = Vector3.one;
     private readonly System.Collections.Generic.List<Outline> _highlightedOutlines = new();
     private EventSystem _eventSystem;
+    private TextMeshProUGUI _upgradePointsText;
 
     private static readonly System.Collections.Generic.List<RaycastResult> RaycastResults = new();
 
@@ -134,6 +145,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
             return;
 
         EnsureEventSystem();
+        RefreshUpgradePointsCopy();
         UpdateCenterScreenInteraction();
     }
 
@@ -146,7 +158,10 @@ public sealed class PerkSelectionUI : MonoBehaviour
         PerkSceneCanvasUI.IsFireBlocked = open;
 
         if (open)
+        {
+            RefreshUpgradePointsCopy();
             ShowCardList(forceRefresh: false);
+        }
         else
         {
             if (gunSelectDisplayUI != null)
@@ -243,6 +258,24 @@ public sealed class PerkSelectionUI : MonoBehaviour
     private bool HasAvailableUpgradePoint()
     {
         return playerExperience != null && playerExperience.AvailableUpgradePoints > 0;
+    }
+
+    private void ResolveExperienceUI()
+    { }
+
+    private void RefreshUpgradePointsCopy()
+    {
+        if (_upgradePointsTextRoot == null || _upgradePointsText == null)
+            return;
+
+        _upgradePointsTextRoot.anchorMin = _upgradePointsTextRoot.anchorMax = _upgradePointsTextRoot.pivot = new Vector2(0.5f, 0.5f);
+        _upgradePointsTextRoot.anchoredPosition = upgradePointsDisplayOffset;
+        if (upgradePointsFont != null)
+            _upgradePointsText.font = upgradePointsFont;
+        _upgradePointsText.fontSize = upgradePointsFontSize;
+        _upgradePointsText.fontStyle = upgradePointsFontStyle;
+        _upgradePointsText.color = upgradePointsTextColor;
+        _upgradePointsText.text = $"{upgradePointsPrefix}{Mathf.Max(0, playerExperience != null ? playerExperience.AvailableUpgradePoints : 0)}";
     }
 
     private void SpawnCandidateCards(bool forceRefresh)
@@ -425,6 +458,21 @@ public sealed class PerkSelectionUI : MonoBehaviour
     {
         _uiRoot = NewRT("PerkSelectionRoot", transform);
         Stretch(_uiRoot);
+
+        _upgradePointsTextRoot = NewRT("UpgradePointsTextRoot", _uiRoot);
+        _upgradePointsTextRoot.anchorMin = _upgradePointsTextRoot.anchorMax = _upgradePointsTextRoot.pivot = new Vector2(0.5f, 0.5f);
+        _upgradePointsTextRoot.sizeDelta = new Vector2(460f, 48f);
+        _upgradePointsTextRoot.anchoredPosition = upgradePointsDisplayOffset;
+
+        _upgradePointsText = _upgradePointsTextRoot.gameObject.AddComponent<TextMeshProUGUI>();
+        _upgradePointsText.raycastTarget = false;
+        if (upgradePointsFont != null)
+            _upgradePointsText.font = upgradePointsFont;
+        _upgradePointsText.fontSize = upgradePointsFontSize;
+        _upgradePointsText.fontStyle = upgradePointsFontStyle;
+        _upgradePointsText.alignment = TextAlignmentOptions.Center;
+        _upgradePointsText.color = upgradePointsTextColor;
+        _upgradePointsText.text = $"{upgradePointsPrefix}0";
 
         _cardListRoot = NewRT("CardListRoot", _uiRoot);
         Stretch(_cardListRoot);

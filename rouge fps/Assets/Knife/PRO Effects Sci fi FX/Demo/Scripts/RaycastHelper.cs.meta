@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: eef660578f854aa4a8844cfc410f7cd0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 176115
+  packageName: 'PRO Effects: Sci-fi Shooter FX'
+  packageVersion: 1.1
+  assetPath: Assets/Knife/PRO Effects Sci fi FX/Demo/Scripts/RaycastHelper.cs
+  uploadId: 585136
