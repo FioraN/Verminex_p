@@ -53,7 +53,7 @@ MonoBehaviour:
   overrideMaxRange: 1
   maxRange: 15
   overrideBulletSpeed: 0
-  bulletSpeed: 80
+  bulletSpeed: 50
   overrideRecoil: 0
   kickPitchPerShot: 1.2
   kickYawRandom: 0.6

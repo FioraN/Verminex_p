@@ -48,15 +48,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   setDamage: 1
-  damage: 13
+  damage: 16
   setMaxRange: 1
-  maxRange: 50
+  maxRange: 40
   setFireRate: 1
   fireRate: 10
   setSemiFireCooldown: 1
   semiFireCooldown: 0.15
   setBulletSpeed: 1
-  bulletSpeed: 80
+  bulletSpeed: 60
   setRecoil: 0
   kickPitchPerShot: 1.5
   kickYawRandom: 0.6

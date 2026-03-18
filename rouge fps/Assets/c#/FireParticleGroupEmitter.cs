@@ -8,6 +8,7 @@ public sealed class FireParticleGroupEmitter : MonoBehaviour
     [SerializeField] [Min(1)] private int emitCount = 1;
     [SerializeField] private bool emitAtSourceFirePoint = true;
     [SerializeField] private bool matchSourceFirePointRotation = true;
+    [SerializeField] private bool parentEmitterToSourceFirePoint = true;
 
     [Header("Filter")]
     [SerializeField] private CameraGunChannel[] sourceFilter;
@@ -74,9 +75,20 @@ public sealed class FireParticleGroupEmitter : MonoBehaviour
         if (!emitAtSourceFirePoint || emitter == null || source == null || source.firePoint == null)
             return;
 
-        emitter.transform.position = source.firePoint.position;
+        if (parentEmitterToSourceFirePoint)
+        {
+            emitter.transform.SetParent(source.firePoint, worldPositionStays: false);
+            emitter.transform.localPosition = Vector3.zero;
 
-        if (matchSourceFirePointRotation)
-            emitter.transform.rotation = source.firePoint.rotation;
+            if (matchSourceFirePointRotation)
+                emitter.transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            emitter.transform.position = source.firePoint.position;
+
+            if (matchSourceFirePointRotation)
+                emitter.transform.rotation = source.firePoint.rotation;
+        }
     }
 }
