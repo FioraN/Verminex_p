@@ -309,14 +309,21 @@ public class TaskPatrol : Node
 
         // 4. 检测是否到达
         // 增加 pathPending 检查，防止刚 SetDestination 还没算好路径就误判距离为 0
-        if (!_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance)
+        if (_agent != null && _agent.isActiveAndEnabled && _agent.isOnNavMesh)
         {
-            if (!_agent.hasPath || _agent.velocity.sqrMagnitude == 0f)
+            bool reachedDestination =
+                !_agent.pathPending &&
+                _agent.pathStatus == NavMeshPathStatus.PathComplete &&
+                _agent.remainingDistance <= Mathf.Max(_agent.stoppingDistance, 0.05f) &&
+                _agent.velocity.sqrMagnitude <= 0.01f;
+
+            if (reachedDestination)
             {
                 _isWaiting = true;
                 _waitTimer = 0f;
-                _destinationSet = false; // 准备下一次
+                _destinationSet = false;
 
+                _agent.isStopped = true;
                 if (_ani) _ani.SetBool("IsMoving", false);
             }
         }
