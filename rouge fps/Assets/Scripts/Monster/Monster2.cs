@@ -6,12 +6,27 @@ using UnityEngine.AI;
 public class Monster2 : MonsterBase
 {
     private Animator ani;
+    [Header("Visual Sprites")]
+    public SpriteRenderer pictureRenderer;
+    public Sprite deathSprite;
+
+    private Sprite _defaultSprite;
 
     [Header("Ranged Settings")]
     public GameObject projectilePrefab;
     public Transform firePoint;
     public float projectileSpeed = 10f;
     public float projectileLifetime = 5f;
+
+    [Header("Projectile Launch")]
+    [Tooltip("Multiplier applied when launching the projectile so it feels more like a fast shot.")]
+    [Min(0.1f)] public float projectileLaunchSpeedMultiplier = 3f;
+
+    [Tooltip("Disable gravity on the spawned projectile so it flies straight instead of drooping immediately.")]
+    public bool disableProjectileGravityOnLaunch = true;
+
+    [Tooltip("Use continuous collision detection on the spawned projectile to reduce fast-shot tunneling.")]
+    public bool useContinuousCollisionOnLaunch = true;
 
     private TaskPatrol patrolTask;
     private List<Transform> patrolPoints;
@@ -20,6 +35,7 @@ public class Monster2 : MonsterBase
     {
         ani = GetComponent<Animator>();
         type = MonsterType.Ranged;
+        ResolvePictureRenderer();
 
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (agent != null) agent.speed = speed;
@@ -75,7 +91,7 @@ public class Monster2 : MonsterBase
         Node detectionCheck = new Selector(new List<Node> { checkAggro, checkViewSector });
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);
         Node attackAction = new TaskAttackWithMove(this, ani, agent, playerTransform);
-        Node chaseAction = new TaskNavMove(agent, playerTransform, ani);
+        Node chaseAction = new TaskNavMove(agent, playerTransform, ani, this);
 
         Selector combatBehaviors = new Selector(new List<Node>
         {
@@ -85,8 +101,8 @@ public class Monster2 : MonsterBase
 
         Sequence combatSequence = new Sequence(new List<Node> { detectionCheck, combatBehaviors });
 
-        patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani);
-        Node idle5s = new TaskTimedIdle(ani, 5.0f);
+        patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani, this);
+        Node idle5s = new TaskTimedIdle(ani, 5.0f, this);
 
         Sequence patrolIdleSeq = new Sequence(new List<Node>
         {
@@ -113,11 +129,14 @@ public class Monster2 : MonsterBase
             return;
         }
 
-        GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
-        proj.SetActive(true);
+        Vector3 targetPoint = GetPlayerBodyCenter();
+        Vector3 toTarget = targetPoint - firePoint.position;
+        Vector3 direction = toTarget.sqrMagnitude > 0.0001f ? toTarget.normalized : firePoint.forward;
+        float launchSpeed = Mathf.Max(0.01f, projectileSpeed * Mathf.Max(0.1f, projectileLaunchSpeedMultiplier));
 
-        Vector3 targetPoint = playerTransform.position + Vector3.up * 1.2f;
-        proj.transform.LookAt(targetPoint);
+        GameObject proj = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
+        proj.SetActive(true);
+        IgnoreOwnerCollision(proj);
 
         MonsterProjectileDamage projectileDamage = proj.GetComponent<MonsterProjectileDamage>();
         if (projectileDamage == null)
@@ -130,8 +149,107 @@ public class Monster2 : MonsterBase
         if (rb != null)
         {
             rb.velocity = Vector3.zero;
-            Vector3 direction = (targetPoint - firePoint.position).normalized;
-            rb.velocity = direction * projectileSpeed;
+            rb.angularVelocity = Vector3.zero;
+
+            if (disableProjectileGravityOnLaunch)
+                rb.useGravity = false;
+
+            if (useContinuousCollisionOnLaunch)
+                rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+            rb.velocity = direction * launchSpeed;
         }
+    }
+
+    private void IgnoreOwnerCollision(GameObject projectile)
+    {
+        if (projectile == null)
+            return;
+
+        var projectileColliders = projectile.GetComponentsInChildren<Collider>(true);
+        var ownerColliders = GetComponentsInChildren<Collider>(true);
+        if (projectileColliders == null || ownerColliders == null)
+            return;
+
+        for (int i = 0; i < projectileColliders.Length; i++)
+        {
+            var projectileCollider = projectileColliders[i];
+            if (projectileCollider == null)
+                continue;
+
+            for (int j = 0; j < ownerColliders.Length; j++)
+            {
+                var ownerCollider = ownerColliders[j];
+                if (ownerCollider == null)
+                    continue;
+
+                Physics.IgnoreCollision(projectileCollider, ownerCollider, true);
+            }
+        }
+    }
+
+    private Vector3 GetPlayerBodyCenter()
+    {
+        if (playerTransform == null)
+            return transform.position;
+
+        CharacterController characterController = playerTransform.GetComponentInParent<CharacterController>();
+        if (characterController != null)
+            return characterController.bounds.center;
+
+        CapsuleCollider capsuleCollider = playerTransform.GetComponentInParent<CapsuleCollider>();
+        if (capsuleCollider != null)
+            return capsuleCollider.bounds.center;
+
+        Collider playerCollider = playerTransform.GetComponentInParent<Collider>();
+        if (playerCollider != null)
+            return playerCollider.bounds.center;
+
+        return playerTransform.position;
+    }
+
+    private void LateUpdate()
+    {
+        if (!ResolvePictureRenderer())
+            return;
+
+        if (isDead && deathSprite != null)
+        {
+            pictureRenderer.sprite = deathSprite;
+            return;
+        }
+
+        if (_defaultSprite != null)
+            pictureRenderer.sprite = _defaultSprite;
+    }
+
+    private bool ResolvePictureRenderer()
+    {
+        if (pictureRenderer == null)
+        {
+            var renderers = GetComponentsInChildren<SpriteRenderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null)
+                    continue;
+
+                if (renderers[i].gameObject.name == "picture")
+                {
+                    pictureRenderer = renderers[i];
+                    break;
+                }
+            }
+
+            if (pictureRenderer == null && renderers.Length > 0)
+                pictureRenderer = renderers[0];
+        }
+
+        if (pictureRenderer == null)
+            return false;
+
+        if (_defaultSprite == null)
+            _defaultSprite = pictureRenderer.sprite;
+
+        return true;
     }
 }

@@ -56,7 +56,7 @@ MonoBehaviour:
   setBulletSpeed: 1
   bulletSpeed: 80
   setRecoil: 0
-  kickPitchPerShot: 1.2
+  kickPitchPerShot: 1.5
   kickYawRandom: 0.6
 --- !u!114 &8282906023978507698
 MonoBehaviour:

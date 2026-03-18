@@ -22,6 +22,12 @@ public sealed class PlayerVitals : MonoBehaviour, IDamageable, IDamageableEx, ID
     [Min(0)] public int maxArmor = 50;
     [Min(0)] public int armor = 50;
 
+    [Header("Armor Regen")]
+    public bool enableArmorRegen = false;
+    [Min(0)] public int armorRegenLimit = 50;
+    [Min(0f)] public float armorRegenPerSecond = 10f;
+    [Min(0f)] public float armorRegenCooldown = 3f;
+
     [Header("State")]
     [SerializeField] private bool isDead;
 
@@ -31,6 +37,9 @@ public sealed class PlayerVitals : MonoBehaviour, IDamageable, IDamageableEx, ID
     public event Action<int, int> OnArmorChanged;    // (current, max)
     public event Action OnDied;
 
+    private float _lastDamageTime = float.NegativeInfinity;
+    private float _armorRegenProgress;
+
     private void Awake()
     {
         if (maxHp < 1) maxHp = 1;
@@ -38,6 +47,12 @@ public sealed class PlayerVitals : MonoBehaviour, IDamageable, IDamageableEx, ID
 
         if (maxArmor < 0) maxArmor = 0;
         armor = Mathf.Clamp(armor, 0, maxArmor);
+        armorRegenLimit = Mathf.Clamp(armorRegenLimit, 0, maxArmor);
+    }
+
+    private void Update()
+    {
+        TickArmorRegen();
     }
 
     // -----------------------------
@@ -147,6 +162,9 @@ public sealed class PlayerVitals : MonoBehaviour, IDamageable, IDamageableEx, ID
     {
         if (rawDamage < 1 || IsDead) return;
 
+        _lastDamageTime = Time.time;
+        _armorRegenProgress = 0f;
+
         int hpBefore = hp;
         int armorBefore = armor;
 
@@ -218,5 +236,37 @@ public sealed class PlayerVitals : MonoBehaviour, IDamageable, IDamageableEx, ID
             isDead = true;
             OnDied?.Invoke();
         }
+    }
+
+    private void TickArmorRegen()
+    {
+        if (!enableArmorRegen || IsDead)
+            return;
+
+        int regenCap = Mathf.Clamp(armorRegenLimit, 0, maxArmor);
+        if (armor >= regenCap)
+        {
+            _armorRegenProgress = 0f;
+            return;
+        }
+
+        if (Time.time - _lastDamageTime < armorRegenCooldown)
+            return;
+
+        float regenRate = Mathf.Max(0f, armorRegenPerSecond);
+        if (regenRate <= 0f)
+            return;
+
+        _armorRegenProgress += regenRate * Time.deltaTime;
+        int armorToRestore = Mathf.FloorToInt(_armorRegenProgress);
+        if (armorToRestore < 1)
+            return;
+
+        _armorRegenProgress -= armorToRestore;
+
+        int before = armor;
+        armor = Mathf.Clamp(armor + armorToRestore, 0, regenCap);
+        if (before != armor)
+            OnArmorChanged?.Invoke(armor, maxArmor);
     }
 }

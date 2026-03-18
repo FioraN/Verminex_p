@@ -468,7 +468,7 @@ MonoBehaviour:
   type: 1
   speed: 5
   attack: 15
-  attackRange: 2
+  attackRange: 6
   attackCooldown: 1.5
   viewRange: 8
   viewAngle: 120

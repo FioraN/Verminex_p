@@ -2,18 +2,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Ìõ¼ş½Úµã£º¼ì²âÊÇ·ñÓĞÄ¿±êÔÚ·¶Î§ÄÚ
+// æ¡ä»¶èŠ‚ç‚¹ï¼šæ£€æµ‹æ˜¯å¦æœ‰ç›®æ ‡åœ¨èŒƒå›´å†…
 public class CheckTargetRange : Node
 {
     private readonly Transform _transform;
     private readonly Transform _target;
-    private readonly float _sqrRange; // ´æ´¢¾àÀëµÄÆ½·½£¬ÓÃÓÚ±È½Ï
+    private readonly float _sqrRange; // å­˜å‚¨è·ç¦»çš„å¹³æ–¹ï¼Œç”¨äºæ¯”è¾ƒ
 
     public CheckTargetRange(Transform transform, Transform target, float range)
     {
         _transform = transform;
         _target = target;
-        _sqrRange = range * range; // Ô¤¼ÆËãÆ½·½Öµ
+        _sqrRange = range * range; // é¢„è®¡ç®—å¹³æ–¹å€¼
     }
 
     public override NodeState Evaluate()
@@ -26,13 +26,13 @@ public class CheckTargetRange : Node
 }
 
 
-// Ìõ¼ş½Úµã£º¼ì²âÄ¿±êÊÇ·ñÔÚÉÈĞÎ·¶Î§ÄÚ£¨ÊÓÒ°¼ì²â£©
+// æ¡ä»¶èŠ‚ç‚¹ï¼šæ£€æµ‹ç›®æ ‡æ˜¯å¦åœ¨æ‰‡å½¢èŒƒå›´å†…ï¼ˆè§†é‡æ£€æµ‹ï¼‰
 public class CheckTargetSector : Node
 {
     private readonly Transform _transform;
     private readonly Transform _target;
-    private readonly float _sqrRange; // ¾àÀëÆ½·½
-    private readonly float _halfAngle; // °ë½Ç£¨±ÈÈçÊÓÒ°90¶È£¬ÕâÀï´æ45¶È£©
+    private readonly float _sqrRange; // è·ç¦»å¹³æ–¹
+    private readonly float _halfAngle; // åŠè§’ï¼ˆæ¯”å¦‚è§†é‡90åº¦ï¼Œè¿™é‡Œå­˜45åº¦ï¼‰
 
     public CheckTargetSector(Transform transform, Transform target, float viewRange, float viewAngle)
     {
@@ -48,12 +48,12 @@ public class CheckTargetSector : Node
 
         Vector3 dirToTarget = _target.position - _transform.position;
 
-        // 1. ÏÈ¼ì²é¾àÀë (SqrMagnitude ±È Distance ¿ì)
+        // 1. å…ˆæ£€æŸ¥è·ç¦» (SqrMagnitude æ¯” Distance å¿«)
         if (dirToTarget.sqrMagnitude > _sqrRange)
             return NodeState.Failure;
 
-        // 2. ÔÙ¼ì²é½Ç¶È
-        // Vector3.Angle ·µ»ØÁ½¸öÏòÁ¿µÄ¼Ğ½Ç(0~180)
+        // 2. å†æ£€æŸ¥è§’åº¦
+        // Vector3.Angle è¿”å›ä¸¤ä¸ªå‘é‡çš„å¤¹è§’(0~180)
         float angle = Vector3.Angle(_transform.forward, dirToTarget);
 
         if (angle <= _halfAngle)
@@ -66,20 +66,22 @@ public class CheckTargetSector : Node
 }
 
 
-// ¶¯×÷½Úµã£ºÊ¹ÓÃ NavMesh ÒÆ¶¯
+// åŠ¨ä½œèŠ‚ç‚¹ï¼šä½¿ç”¨ NavMesh ç§»åŠ¨
 public class TaskNavMove : Node
 {
     private readonly NavMeshAgent _agent;
     private readonly Transform _target;
     private readonly Animator _ani;
+    private readonly MonsterBase _monster;
     private readonly int _isMovingHash;
 
-    public TaskNavMove(NavMeshAgent agent, Transform target, Animator ani)
+    public TaskNavMove(NavMeshAgent agent, Transform target, Animator ani, MonsterBase monster = null)
     {
         _agent = agent;
         _target = target;
         _ani = ani;
-        // »º´æ¶¯»­²ÎÊıID£¬ÌáÉıĞÔÄÜ
+        _monster = monster;
+        // ç¼“å­˜åŠ¨ç”»å‚æ•°IDï¼Œæå‡æ€§èƒ½
         _isMovingHash = Animator.StringToHash("IsMoving");
     }
 
@@ -87,33 +89,33 @@ public class TaskNavMove : Node
     {
         if (_target == null) return NodeState.Failure;
 
-        // ¼ì²é NavMeshAgent ÊÇ·ñÓĞĞ§
+        // æ£€æŸ¥ NavMeshAgent æ˜¯å¦æœ‰æ•ˆ
         if (_agent == null || !_agent.isActiveAndEnabled || !_agent.isOnNavMesh)
         {
             return NodeState.Failure;
         }
 
-        // È·±£ NavMeshAgent Ã»ÓĞ±»ÊÖ¶¯Í£Ö¹
+        // ç¡®ä¿ NavMeshAgent æ²¡æœ‰è¢«æ‰‹åŠ¨åœæ­¢
         if (_agent.isStopped)
         {
             _agent.isStopped = false;
         }
 
-        // ³ÖĞø¸üĞÂÄ¿µÄµØ£¨×·×ÙÄ¿±ê£©
+        // æŒç»­æ›´æ–°ç›®çš„åœ°ï¼ˆè¿½è¸ªç›®æ ‡ï¼‰
         _agent.SetDestination(_target.position);
 
         Debug.Log(_target.position);
 
 
-        // ²¥·ÅÒÆ¶¯¶¯»­
+        // æ’­æ”¾ç§»åŠ¨åŠ¨ç”»
         if (_ani != null) _ani.SetBool(_isMovingHash, true);
 
-        // Ê¼ÖÕ·µ»Ø Running£¬±£³Ö³ÖĞø×·×Ù
+        // å§‹ç»ˆè¿”å› Runningï¼Œä¿æŒæŒç»­è¿½è¸ª
         return NodeState.Running;
     }
 }
 
-// ¶¯×÷½Úµã£º±ßÒÆ¶¯±ß¹¥»÷£¨¹¥»÷·¶Î§ÄÚµÄĞĞÎª£©
+// åŠ¨ä½œèŠ‚ç‚¹ï¼šè¾¹ç§»åŠ¨è¾¹æ”»å‡»ï¼ˆæ”»å‡»èŒƒå›´å†…çš„è¡Œä¸ºï¼‰
 public class TaskAttackWithMove : Node
 {
     private readonly MonsterBase _monster;
@@ -122,10 +124,10 @@ public class TaskAttackWithMove : Node
     private readonly Transform _target;
 
     private float _lastAttackTime;
-    // Èç¹ûÄãµÄ¹¥»÷¶¯»­ºÜ³¤£¬½¨ÒéÔö¼ÓÕâ¸öÖµ£¬»òÕß´ÓÍâ²¿´«Èë
+    // å¦‚æœä½ çš„æ”»å‡»åŠ¨ç”»å¾ˆé•¿ï¼Œå»ºè®®å¢åŠ è¿™ä¸ªå€¼ï¼Œæˆ–è€…ä»å¤–éƒ¨ä¼ å…¥
     private readonly float _attackAnimationDuration = 1.2f;
 
-    // »º´æ¶¯»­²ÎÊıID
+    // ç¼“å­˜åŠ¨ç”»å‚æ•°ID
     private readonly int _isMovingHash;
 
     public TaskAttackWithMove(MonsterBase monster, Animator ani, NavMeshAgent agent, Transform target)
@@ -134,34 +136,38 @@ public class TaskAttackWithMove : Node
         _ani = ani;
         _agent = agent;
         _target = target;
-        _lastAttackTime = -9999f; // ³õÊ¼»¯ÎªÒ»¸öºÜ¾ÃÒÔÇ°µÄÊ±¼ä
+        _lastAttackTime = -9999f; // åˆå§‹åŒ–ä¸ºä¸€ä¸ªå¾ˆä¹…ä»¥å‰çš„æ—¶é—´
         _isMovingHash = Animator.StringToHash("IsMoving");
     }
 
     public override NodeState Evaluate()
     {
+        _monster?.SetAttackReadyVisual(false);
         if (_target == null) return NodeState.Failure;
+        _monster.SetAttackReadyVisual(false);
         if (_agent == null || !_agent.isActiveAndEnabled || !_agent.isOnNavMesh) return NodeState.Failure;
 
-        // ¼ÆËãµ±Ç°ÊÇ·ñ´¦ÓÚ¹¥»÷ºóµÄ½©Ö±ÆÚ¼ä
+        // è®¡ç®—å½“å‰æ˜¯å¦å¤„äºæ”»å‡»åçš„åƒµç›´æœŸé—´
         bool inAttackAnimation = (Time.time - _lastAttackTime) < _attackAnimationDuration;
 
         if (inAttackAnimation)
         {
-            // ´¦ÓÚ¹¥»÷Ó²Ö±ÖĞ£ºÇ¿ÖÆÍ£Ö¹ÒÆ¶¯
+            // å¤„äºæ”»å‡»ç¡¬ç›´ä¸­ï¼šå¼ºåˆ¶åœæ­¢ç§»åŠ¨
+            _monster.SetAttackReadyVisual(false);
             SetStoppedState(true);
             return NodeState.Running;
         }
 
-        // ³¢ÊÔÖ´ĞĞ¹¥»÷Âß¼­£¨ÄÚ²¿¼ì²é¾àÀë¡¢ÀäÈ´µÈÌõ¼ş£©
+        // å°è¯•æ‰§è¡Œæ”»å‡»é€»è¾‘ï¼ˆå†…éƒ¨æ£€æŸ¥è·ç¦»ã€å†·å´ç­‰æ¡ä»¶ï¼‰
         bool justAttacked = _monster.TryAttack();
 
         if (justAttacked)
         {
             _lastAttackTime = Time.time;
-            // ¹¥»÷´¥·¢Ë²¼ä£ºÁ¢¼´Í£Ö¹
+            // æ”»å‡»è§¦å‘ç¬é—´ï¼šç«‹å³åœæ­¢
+            _monster.SetAttackReadyVisual(false);
             SetStoppedState(true);
-            // ÕâÀï¿ÉÒÔ¼ÓÒ»¸ö³¯ÏòĞŞÕı£¬È·±£¹¥»÷Ê±Õı¶ÔÄ¿±ê
+            // è¿™é‡Œå¯ä»¥åŠ ä¸€ä¸ªæœå‘ä¿®æ­£ï¼Œç¡®ä¿æ”»å‡»æ—¶æ­£å¯¹ç›®æ ‡
             _monster.transform.LookAt(new Vector3(_target.position.x, _monster.transform.position.y, _target.position.z));
 
           
@@ -170,7 +176,8 @@ public class TaskAttackWithMove : Node
         }
         else
         {
-            // Ã»¹¥»÷ÇÒ²»ÔÚÓ²Ö±ÖĞ -> »Ö¸´ÒÆ¶¯×·×Ù
+            // æ²¡æ”»å‡»ä¸”ä¸åœ¨ç¡¬ç›´ä¸­ -> æ¢å¤ç§»åŠ¨è¿½è¸ª
+            _monster.SetAttackReadyVisual(true);
             SetStoppedState(false);
             _agent.SetDestination(_target.position);
         }
@@ -185,8 +192,8 @@ public class TaskAttackWithMove : Node
             _agent.isStopped = isStopped;
             if (isStopped)
             {
-                _agent.velocity = Vector3.zero; // ÎïÀíÉÏÇåÁãËÙ¶È£¬·ÀÖ¹»¬²½
-                _agent.ResetPath(); // Çå³ıÂ·¾¶£¬È·±£³¹µ×Í£ÏÂ
+                _agent.velocity = Vector3.zero; // ç‰©ç†ä¸Šæ¸…é›¶é€Ÿåº¦ï¼Œé˜²æ­¢æ»‘æ­¥
+                _agent.ResetPath(); // æ¸…é™¤è·¯å¾„ï¼Œç¡®ä¿å½»åº•åœä¸‹
             }
         }
 
@@ -197,61 +204,67 @@ public class TaskAttackWithMove : Node
     }
 }
 
-// ¶¯×÷½Úµã£º´ı»ú
+// åŠ¨ä½œèŠ‚ç‚¹ï¼šå¾…æœº
 public class TaskIdle : Node
 {
     private readonly Animator _ani;
+    private readonly MonsterBase _monster;
     private readonly int _isMovingHash;
 
-    public TaskIdle(Animator ani)
+    public TaskIdle(Animator ani, MonsterBase monster = null)
     {
         _ani = ani;
+        _monster = monster;
         _isMovingHash = Animator.StringToHash("IsMoving");
     }
 
     public override NodeState Evaluate()
     {
+        _monster?.SetAttackReadyVisual(false);
         if (_ani != null) _ani.SetBool(_isMovingHash, false);
         return NodeState.Success;
     }
 }
 
-// ĞĞÎª½Úµã£ºÑ²Âß
+// è¡Œä¸ºèŠ‚ç‚¹ï¼šå·¡é€»
 public class TaskPatrol : Node
 {
     private Transform _transform;
     private List<Transform> _waypoints;
     private NavMeshAgent _agent;
     private Animator _ani;
+    private MonsterBase _monster;
     private int _currentWaypointIndex = 0;
     private float _waitTimer = 0f;
     private bool _isWaiting = false;
 
-    // Ìí¼ÓÒ»¸ö±ê¼Ç£¬È·±£Ö»ÔÚÇĞ»»µãÊ±ÉèÖÃÒ»´ÎÄ¿µÄµØ
+    // æ·»åŠ ä¸€ä¸ªæ ‡è®°ï¼Œç¡®ä¿åªåœ¨åˆ‡æ¢ç‚¹æ—¶è®¾ç½®ä¸€æ¬¡ç›®çš„åœ°
     private bool _destinationSet = false;
 
     private Transform _forcedTarget;
 
-    public TaskPatrol(Transform transform, List<Transform> waypoints, NavMeshAgent agent, Animator ani)
+    public TaskPatrol(Transform transform, List<Transform> waypoints, NavMeshAgent agent, Animator ani, MonsterBase monster = null)
     {
         _transform = transform;
         _waypoints = waypoints;
         _agent = agent;
         _ani = ani;
+        _monster = monster;
     }
 
     public void SetNextPatrolPoint(Transform point)
     {
         _forcedTarget = point;
         _isWaiting = false;
-        _destinationSet = false; // Ç¿ÖÆ¸üĞÂÄ¿±ê
+        _destinationSet = false; // å¼ºåˆ¶æ›´æ–°ç›®æ ‡
     }
 
     public override NodeState Evaluate()
     {
+        _monster?.SetAttackReadyVisual(false);
         if (_waypoints == null || _waypoints.Count == 0) return NodeState.Failure;
 
-        // 1. ´¦ÀíÇ¿ÖÆÄ¿±êµã£¨ÍÑÕ½·µ»ØÂß¼­£©
+        // 1. å¤„ç†å¼ºåˆ¶ç›®æ ‡ç‚¹ï¼ˆè„±æˆ˜è¿”å›é€»è¾‘ï¼‰
         if (_forcedTarget != null)
         {
             int index = _waypoints.IndexOf(_forcedTarget);
@@ -260,28 +273,28 @@ public class TaskPatrol : Node
             _forcedTarget = null;
             _isWaiting = false;
             _waitTimer = 0f;
-            _destinationSet = false; // ´¥·¢ÖØĞÂÑ°Â·
+            _destinationSet = false; // è§¦å‘é‡æ–°å¯»è·¯
         }
 
-        // 2. µÈ´ıÂß¼­
+        // 2. ç­‰å¾…é€»è¾‘
         if (_isWaiting)
         {
             if (_ani) _ani.SetBool("IsMoving", false);
-            if (_agent.isActiveAndEnabled) _agent.isStopped = true; // È·±£Í£Ö¹
+            if (_agent.isActiveAndEnabled) _agent.isStopped = true; // ç¡®ä¿åœæ­¢
 
             _waitTimer += Time.deltaTime;
             if (_waitTimer > 1.5f)
             {
-                // µÈ´ı½áÊø£¬ÇĞ»»µ½ÏÂÒ»¸öµã
+                // ç­‰å¾…ç»“æŸï¼Œåˆ‡æ¢åˆ°ä¸‹ä¸€ä¸ªç‚¹
                 _isWaiting = false;
                 _waitTimer = 0f;
                 _currentWaypointIndex = (_currentWaypointIndex + 1) % _waypoints.Count;
-                _destinationSet = false; // ±ê¼ÇĞèÒªÉèÖÃĞÂÄ¿µÄµØ
+                _destinationSet = false; // æ ‡è®°éœ€è¦è®¾ç½®æ–°ç›®çš„åœ°
             }
             return NodeState.Running;
         }
 
-        // 3. ÉèÖÃÒÆ¶¯Ä¿±ê (½öÔÚĞèÒªÊ±µ÷ÓÃÒ»´Î)
+        // 3. è®¾ç½®ç§»åŠ¨ç›®æ ‡ (ä»…åœ¨éœ€è¦æ—¶è°ƒç”¨ä¸€æ¬¡)
         if (!_destinationSet)
         {
             Transform wp = _waypoints[_currentWaypointIndex];
@@ -290,19 +303,19 @@ public class TaskPatrol : Node
                 _agent.SetDestination(wp.position);
                 _agent.isStopped = false;
                 if (_ani) _ani.SetBool("IsMoving", true);
-                _destinationSet = true; // ±ê¼ÇÒÑÉèÖÃ£¬±ÜÃâUpdateÖĞÖØ¸´µ÷ÓÃ
+                _destinationSet = true; // æ ‡è®°å·²è®¾ç½®ï¼Œé¿å…Updateä¸­é‡å¤è°ƒç”¨
             }
         }
 
-        // 4. ¼ì²âÊÇ·ñµ½´ï
-        // Ôö¼Ó pathPending ¼ì²é£¬·ÀÖ¹¸Õ SetDestination »¹Ã»ËãºÃÂ·¾¶¾ÍÎóÅĞ¾àÀëÎª 0
+        // 4. æ£€æµ‹æ˜¯å¦åˆ°è¾¾
+        // å¢åŠ  pathPending æ£€æŸ¥ï¼Œé˜²æ­¢åˆš SetDestination è¿˜æ²¡ç®—å¥½è·¯å¾„å°±è¯¯åˆ¤è·ç¦»ä¸º 0
         if (!_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance)
         {
             if (!_agent.hasPath || _agent.velocity.sqrMagnitude == 0f)
             {
                 _isWaiting = true;
                 _waitTimer = 0f;
-                _destinationSet = false; // ×¼±¸ÏÂÒ»´Î
+                _destinationSet = false; // å‡†å¤‡ä¸‹ä¸€æ¬¡
 
                 if (_ani) _ani.SetBool("IsMoving", false);
             }
@@ -311,12 +324,12 @@ public class TaskPatrol : Node
         return NodeState.Running;
     }
 }
-// ĞĞÎª½Úµã£ºÊÜÉË·´Ó¦
+// è¡Œä¸ºèŠ‚ç‚¹ï¼šå—ä¼¤ååº”
 public class TaskHurt : Node
 {
     private MonsterBase _monster;
     private Animator _ani;
-    private float _duration = 0.5f; // ÊÜÉËÓ²Ö±Ê±¼ä
+    private float _duration = 0.5f; // å—ä¼¤ç¡¬ç›´æ—¶é—´
     private float _timer = 0f;
     private bool _started = false;
 
@@ -328,7 +341,9 @@ public class TaskHurt : Node
 
     public override NodeState Evaluate()
     {
-        // Èç¹ûÃ»ÓĞ´¦ÓÚÊÜÉË×´Ì¬£¬·µ»ØÊ§°Ü£¬ÈÃºóĞø½ÚµãÔËĞĞ
+        _monster.SetAttackReadyVisual(false);
+
+        // å¦‚æœæ²¡æœ‰å¤„äºå—ä¼¤çŠ¶æ€ï¼Œè¿”å›å¤±è´¥ï¼Œè®©åç»­èŠ‚ç‚¹è¿è¡Œ
         if (!_monster.isHurt)
         {
             _started = false;
@@ -339,8 +354,8 @@ public class TaskHurt : Node
         {
             _started = true;
             _timer = 0f;
-            if (_ani) _ani.SetTrigger("Hit"); // ´¥·¢ÊÜÉË¶¯»­
-            // Í£Ö¹ÒÆ¶¯
+            if (_ani) _ani.SetTrigger("Hit"); // è§¦å‘å—ä¼¤åŠ¨ç”»
+            // åœæ­¢ç§»åŠ¨
             if (_monster.agent != null && _monster.agent.isOnNavMesh)
                 _monster.agent.isStopped = true;
         }
@@ -348,8 +363,8 @@ public class TaskHurt : Node
         _timer += Time.deltaTime;
         if (_timer >= _duration)
         {
-            _monster.isHurt = false; // »Ö¸´×´Ì¬
-            _monster.hasAggro = true; // ¼¤Å­£ºÓÉÓÚÊÇÊÜ»÷£¬Ç¿ÖÆ½øÈë×·×ÙÄ£Ê½
+            _monster.isHurt = false; // æ¢å¤çŠ¶æ€
+            _monster.hasAggro = true; // æ¿€æ€’ï¼šç”±äºæ˜¯å—å‡»ï¼Œå¼ºåˆ¶è¿›å…¥è¿½è¸ªæ¨¡å¼
             _started = false;
             return NodeState.Success;
         }
@@ -358,35 +373,38 @@ public class TaskHurt : Node
     }
 }
 
-// ĞĞÎª½Úµã£º´øÊ±¼äµÄ´ı»ú
+// è¡Œä¸ºèŠ‚ç‚¹ï¼šå¸¦æ—¶é—´çš„å¾…æœº
 public class TaskTimedIdle : Node
 {
     private Animator _ani;
+    private MonsterBase _monster;
     private float _duration;
     private float _timer;
 
-    public TaskTimedIdle(Animator ani, float duration)
+    public TaskTimedIdle(Animator ani, float duration, MonsterBase monster = null)
     {
         _ani = ani;
         _duration = duration;
         _timer = 0f;
+        _monster = monster;
     }
 
     public override NodeState Evaluate()
     {
+        _monster?.SetAttackReadyVisual(false);
         if (_ani) _ani.SetBool("IsMoving", false);
 
         _timer += Time.deltaTime;
         if (_timer >= _duration)
         {
-            _timer = 0f; // ÖØÖÃ¼ÆÊ±Æ÷ÒÔ±ãÏÂ´Î½øÈë
-            return NodeState.Success; // ´ı»ú½áÊø
+            _timer = 0f; // é‡ç½®è®¡æ—¶å™¨ä»¥ä¾¿ä¸‹æ¬¡è¿›å…¥
+            return NodeState.Success; // å¾…æœºç»“æŸ
         }
-        return NodeState.Running; // ÕıÔÚ´ı»ú
+        return NodeState.Running; // æ­£åœ¨å¾…æœº
     }
 }
 
-// ¼ì²âÊÇ·ñÓĞ³ğºŞ£¨ÊÜ»÷ºóÇ¿ÖÆ×·×Ù£©
+// æ£€æµ‹æ˜¯å¦æœ‰ä»‡æ¨ï¼ˆå—å‡»åå¼ºåˆ¶è¿½è¸ªï¼‰
 public class CheckAggro : Node
 {
     private MonsterBase _monster;

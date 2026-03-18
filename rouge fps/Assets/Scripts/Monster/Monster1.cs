@@ -2,19 +2,27 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-// 近战攻击怪物：会在一定范围内追击玩家，脱战后回最近的巡逻点
+// 杩戞垬鏀诲嚮鎬墿锛氫細鍦ㄤ竴瀹氳寖鍥村唴杩藉嚮鐜╁锛岃劚鎴樺悗鍥炴渶杩戠殑宸￠€荤偣
 public class Monster1 : MonsterBase
 {
     private Animator ani;
     private List<Transform> patrolPoints;
+    [Header("Visual Sprites")]
+    public SpriteRenderer pictureRenderer;
+    public Sprite readySprite;
+    public Sprite deathSprite;
 
-    // 我们需要引用这个Task，以便在脱战时重置它的状态或目标
+    private Sprite _defaultSprite;
+    private bool _showReadySprite;
+
+    // 鎴戜滑闇€瑕佸紩鐢ㄨ繖涓猅ask锛屼互渚垮湪鑴辨垬鏃堕噸缃畠鐨勭姸鎬佹垨鐩爣
     private TaskPatrol patrolTask;
 
     protected override void Start()
     {
         ani = GetComponent<Animator>();
         type = MonsterType.Melee;
+        ResolvePictureRenderer();
 
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (agent != null) agent.speed = speed;
@@ -31,24 +39,24 @@ public class Monster1 : MonsterBase
     }
 
 
-    //脱战
+    //鑴辨垬
     protected override void OnLostTarget()
     {
         base.OnLostTarget();
 
-        // 核心逻辑：脱战后，找到最近的巡逻点
+        // 鏍稿績閫昏緫锛氳劚鎴樺悗锛屾壘鍒版渶杩戠殑宸￠€荤偣
         if (patrolPoints != null && patrolPoints.Count > 0)
         {
             Transform nearest = GetNearestPatrolPoint();
             if (nearest != null && patrolTask != null)
             {
-                // 告诉巡逻任务：下次开始巡逻时，先去这个最近的点
+                // 鍛婅瘔宸￠€讳换鍔★細涓嬫寮€濮嬪贰閫绘椂锛屽厛鍘昏繖涓渶杩戠殑鐐?
                 patrolTask.SetNextPatrolPoint(nearest);
             }
         }
     }
 
-    //获取临近巡逻点
+    //鑾峰彇涓磋繎宸￠€荤偣
     private Transform GetNearestPatrolPoint()
     {
         Transform nearest = null;
@@ -67,24 +75,24 @@ public class Monster1 : MonsterBase
     }
 
 
-    //设置行为树
+    //璁剧疆琛屼负鏍?
     protected override void SetupBehaviorTree()
     {
-        // 1. 受伤
+        // 1. 鍙椾激
         Node hurtNode = new TaskHurt(this, ani);
 
-        // 2. 战斗检测 (被激怒 OR 看见人)
+        // 2. 鎴樻枟妫€娴?(琚縺鎬?OR 鐪嬭浜?
         Node checkAggro = new CheckAggro(this);
-        // 如果距离 <= viewRange，而且在角度范围内 视为发现敌人
+        // 濡傛灉璺濈 <= viewRange锛岃€屼笖鍦ㄨ搴﹁寖鍥村唴 瑙嗕负鍙戠幇鏁屼汉
         Node checkViewSector = new CheckTargetSector(transform, playerTransform, viewRange, viewAngle);
 
         Node detectionCheck = new Selector(new List<Node> { checkAggro, checkViewSector });
 
 
-        // 战斗行为
+        // 鎴樻枟琛屼负
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);
         Node attackAction = new TaskAttackWithMove(this, ani, agent, playerTransform);
-        Node chaseAction = new TaskNavMove(agent, playerTransform, ani);
+        Node chaseAction = new TaskNavMove(agent, playerTransform, ani, this);
 
         Selector combatBehaviors = new Selector(new List<Node>
         {
@@ -94,11 +102,11 @@ public class Monster1 : MonsterBase
 
         Sequence combatSequence = new Sequence(new List<Node> { detectionCheck, combatBehaviors });
 
-        // 3. 巡逻 (创建实例并保存引用)
-        patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani);
-        Node idle5s = new TaskTimedIdle(ani, 5.0f);
+        // 3. 宸￠€?(鍒涘缓瀹炰緥骞朵繚瀛樺紩鐢?
+        patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani, this);
+        Node idle5s = new TaskTimedIdle(ani, 5.0f, this);
 
-        // 巡逻逻辑：先巡逻 -> 到了休息 -> 重复
+        // 宸￠€婚€昏緫锛氬厛宸￠€?-> 鍒颁簡浼戞伅 -> 閲嶅
         Sequence patrolIdleSeq = new Sequence(new List<Node>
         {
             patrolTask,
@@ -114,10 +122,10 @@ public class Monster1 : MonsterBase
     }
 
 
-    //可以攻击
+    //鍙互鏀诲嚮
     protected override void PerformAttack()
     {
-        // 1. 检查玩家是否存在且存活
+        // 1. 妫€鏌ョ帺瀹舵槸鍚﹀瓨鍦ㄤ笖瀛樻椿
         if (playerTransform == null) return;
 
         PlayerVitals playerVitals = playerTransform.GetComponent<PlayerVitals>();
@@ -133,6 +141,62 @@ public class Monster1 : MonsterBase
         {
             playerVitals.TakeDamage(attack);
         }
+    }
+
+    public override void SetAttackReadyVisual(bool active)
+    {
+        _showReadySprite = active && !isDead;
+    }
+
+    private void LateUpdate()
+    {
+        if (!ResolvePictureRenderer())
+            return;
+
+        if (isDead && deathSprite != null)
+        {
+            pictureRenderer.sprite = deathSprite;
+            return;
+        }
+
+        if (_showReadySprite && readySprite != null)
+        {
+            pictureRenderer.sprite = readySprite;
+            return;
+        }
+
+        if (_defaultSprite != null)
+            pictureRenderer.sprite = _defaultSprite;
+    }
+
+    private bool ResolvePictureRenderer()
+    {
+        if (pictureRenderer == null)
+        {
+            var renderers = GetComponentsInChildren<SpriteRenderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null)
+                    continue;
+
+                if (renderers[i].gameObject.name == "picture")
+                {
+                    pictureRenderer = renderers[i];
+                    break;
+                }
+            }
+
+            if (pictureRenderer == null && renderers.Length > 0)
+                pictureRenderer = renderers[0];
+        }
+
+        if (pictureRenderer == null)
+            return false;
+
+        if (_defaultSprite == null)
+            _defaultSprite = pictureRenderer.sprite;
+
+        return true;
     }
 
 

@@ -23,12 +23,22 @@ public sealed class Perk_ShotgunMode : GunPerkModifierBase
 
     [Min(0.01f)] public float bulletSpeed = 80f;
 
+    [Header("Recoil Override")]
+    [Tooltip("Whether to override recoil while this perk is active.")]
+    public bool overrideRecoil = false;
+
+    [Min(0f)] public float kickPitchPerShot = 1.2f;
+    [Min(0f)] public float kickYawRandom = 0.6f;
+
     [Header("Priority")]
     public int priority = 0;
     public override int Priority => priority;
 
     private CameraGunChannel.ShotType _prevShotType;
     private int _prevPellets;
+    private GunRecoil _recoil;
+    private float _prevKickPitchPerShot;
+    private float _prevKickYawRandom;
     private bool _applied;
 
     private void OnEnable()
@@ -41,9 +51,24 @@ public sealed class Perk_ShotgunMode : GunPerkModifierBase
         {
             _prevShotType = SourceGun.shotType;
             _prevPellets = SourceGun.pelletsPerShot;
+            _recoil = SourceGun.recoil;
+            if (_recoil == null)
+                _recoil = SourceGun.GetComponent<GunRecoil>() ?? SourceGun.GetComponentInParent<GunRecoil>();
+
+            if (_recoil != null)
+            {
+                _prevKickPitchPerShot = _recoil.kickPitchPerShot;
+                _prevKickYawRandom = _recoil.kickYawRandom;
+            }
 
             SourceGun.shotType = CameraGunChannel.ShotType.Shotgun;
             SourceGun.pelletsPerShot = Mathf.Max(1, pelletsPerShot);
+
+            if (overrideRecoil && _recoil != null)
+            {
+                _recoil.kickPitchPerShot = Mathf.Max(0f, kickPitchPerShot);
+                _recoil.kickYawRandom = Mathf.Max(0f, kickYawRandom);
+            }
 
             _applied = true;
         }
@@ -55,6 +80,14 @@ public sealed class Perk_ShotgunMode : GunPerkModifierBase
         {
             SourceGun.shotType = _prevShotType;
             SourceGun.pelletsPerShot = _prevPellets;
+
+            if (_recoil != null)
+            {
+                _recoil.kickPitchPerShot = _prevKickPitchPerShot;
+                _recoil.kickYawRandom = _prevKickYawRandom;
+            }
+
+            _recoil = null;
             _applied = false;
         }
 

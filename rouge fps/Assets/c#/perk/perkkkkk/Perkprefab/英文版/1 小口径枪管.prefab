@@ -55,8 +55,8 @@ MonoBehaviour:
   semiFireCooldown: 0.15
   setBulletSpeed: 1
   bulletSpeed: 80
-  setRecoil: 0
-  kickPitchPerShot: 1.2
+  setRecoil: 1
+  kickPitchPerShot: 1
   kickYawRandom: 0.6
 --- !u!114 &-299806128855994480
 MonoBehaviour:

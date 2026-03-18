@@ -55,8 +55,8 @@ MonoBehaviour:
   semiFireCooldown: 0.15
   setBulletSpeed: 1
   bulletSpeed: 80
-  setRecoil: 0
-  kickPitchPerShot: 1.2
+  setRecoil: 1
+  kickPitchPerShot: 2.5
   kickYawRandom: 0.6
 --- !u!114 &-3993473846896322728
 MonoBehaviour:
@@ -70,6 +70,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 397730aeff21c84439432fffdcc847c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  perkName: 
   perkId: 3
   perkTier: 1
   isBasePerk: 1
@@ -83,3 +84,5 @@ MonoBehaviour:
   flavorText: 
   description: "\u67AA\u68B0\u5C04\u7A0B\u589E\u52A0\uFF0C\u5C04\u901F\u51CF\u5C11\uFF0C\u4F24\u5BB3\u589E\u5927\uFF0C\u89E3\u9501\u90E8\u5206\u5927\u53E3\u5F84\u914D\u4EF6"
   icon: {fileID: 0}
+  changeGunUiPrefab: {fileID: 0}
+  changeGunImageTarget: 0

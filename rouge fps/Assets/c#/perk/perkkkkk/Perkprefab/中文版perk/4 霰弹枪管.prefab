@@ -48,6 +48,13 @@ MonoBehaviour:
   pelletsPerShot: 6
   keepTotalDamageConstant: 1
   totalDamageMultiplier: 1
+  overrideMaxRange: 0
+  maxRange: 40
+  overrideBulletSpeed: 0
+  bulletSpeed: 80
+  overrideRecoil: 1
+  kickPitchPerShot: 3.5
+  kickYawRandom: 0.6
   priority: 0
 --- !u!114 &-1120498644300940196
 MonoBehaviour:
@@ -61,6 +68,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 397730aeff21c84439432fffdcc847c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  perkName: 
   perkId: 4
   perkTier: 1
   isBasePerk: 1
@@ -74,3 +82,5 @@ MonoBehaviour:
   flavorText: 
   description: "\u6B66\u5668\u53D8\u4E3A\u9730\u5F39\u67AA\uFF0C\u89E3\u9501\u90E8\u5206\u9730\u5F39\u67AA\u914D\u4EF6"
   icon: {fileID: 0}
+  changeGunUiPrefab: {fileID: 0}
+  changeGunImageTarget: 0
