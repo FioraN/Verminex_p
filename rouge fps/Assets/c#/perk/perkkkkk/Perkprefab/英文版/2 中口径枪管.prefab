@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2039678891941185280}
   - component: {fileID: 8407225715985250048}
   - component: {fileID: 8282906023978507698}
+  - component: {fileID: -8727766142062943187}
   m_Layer: 0
   m_Name: "2 \u4E2D\u53E3\u5F84\u67AA\u7BA1"
   m_TagString: Untagged
@@ -88,3 +89,17 @@ MonoBehaviour:
   changeGunUiPrefab: {fileID: 8262628674748816999, guid: 1d7465782ad026546a4e0afdbc79bd1d,
     type: 3}
   changeGunImageTarget: 1
+--- !u!114 &-8727766142062943187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5849303283709561330}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33e899d912a131046be71721085fde5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uiPrefab: {fileID: 5694290495810096119, guid: 522ea1dafc4c5074e9dd6590a898f353,
+    type: 3}

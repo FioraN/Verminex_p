@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4455963092999402192}
   - component: {fileID: 8185000888211541788}
   - component: {fileID: -1120498644300940196}
+  - component: {fileID: -736205690217594475}
   m_Layer: 0
   m_Name: "4 \u9730\u5F39\u67AA\u7BA1"
   m_TagString: Untagged
@@ -52,6 +53,9 @@ MonoBehaviour:
   maxRange: 15
   overrideBulletSpeed: 0
   bulletSpeed: 80
+  overrideRecoil: 0
+  kickPitchPerShot: 1.2
+  kickYawRandom: 0.6
   priority: 0
 --- !u!114 &-1120498644300940196
 MonoBehaviour:
@@ -82,3 +86,17 @@ MonoBehaviour:
   changeGunUiPrefab: {fileID: 5325129976480885021, guid: 0a79320aca9c75449ab012618fc2029d,
     type: 3}
   changeGunImageTarget: 1
+--- !u!114 &-736205690217594475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8647037713882437576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33e899d912a131046be71721085fde5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uiPrefab: {fileID: 5721789934697871332, guid: c51a8fdb604cd6444b01896ac46ef44e,
+    type: 3}
