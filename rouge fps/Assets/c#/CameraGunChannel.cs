@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class CameraGunChannel : MonoBehaviour
 {
@@ -72,12 +72,16 @@ public class CameraGunChannel : MonoBehaviour
     private float _nextSemiAllowedTime;
 
     private CameraGunDual _dual;
+    private AutoAimLockOn _autoAimLock;
 
     private void Awake()
     {
         if (firePoint == null) firePoint = transform;
 
         AutoAssignIfSafe();
+
+        if (_autoAimLock == null)
+            _autoAimLock = GetComponentInChildren<AutoAimLockOn>(true);
 
         _dual = GetComponent<CameraGunDual>();
         if (_dual == null) _dual = FindFirstObjectByType<CameraGunDual>();
@@ -223,6 +227,28 @@ public class CameraGunChannel : MonoBehaviour
         forward = firePoint.forward;
         right = firePoint.right;
         up = firePoint.up;
+
+        if (_autoAimLock == null)
+            _autoAimLock = GetComponentInChildren<AutoAimLockOn>(true);
+
+        if (_autoAimLock != null && _autoAimLock.active && _autoAimLock.HasTarget)
+        {
+            Vector3 autoAimPoint = _autoAimLock.CurrentAimWorldPoint;
+            Vector3 toAutoAimPoint = autoAimPoint - firePoint.position;
+            if (toAutoAimPoint.sqrMagnitude > 0.000001f)
+            {
+                forward = toAutoAimPoint.normalized;
+
+                Camera autoAimCamera = aimCamera != null ? aimCamera : Camera.main;
+                if (autoAimCamera != null)
+                {
+                    right = autoAimCamera.transform.right;
+                    up = autoAimCamera.transform.up;
+                }
+
+                return;
+            }
+        }
 
         if (!aimFromScreenCenter) return;
 
@@ -370,9 +396,11 @@ public class CameraGunChannel : MonoBehaviour
 
         ammo.OnReloadStart -= HandleReloadStart;
         ammo.OnReloadEnd -= HandleReloadEnd;
+        ammo.OnInsertedAmmo -= HandleInsertedAmmo;
 
         ammo.OnReloadStart += HandleReloadStart;
         ammo.OnReloadEnd += HandleReloadEnd;
+        ammo.OnInsertedAmmo += HandleInsertedAmmo;
     }
 
     private void UnhookAmmoEvents()
@@ -380,6 +408,7 @@ public class CameraGunChannel : MonoBehaviour
         if (ammo == null) return;
         ammo.OnReloadStart -= HandleReloadStart;
         ammo.OnReloadEnd -= HandleReloadEnd;
+        ammo.OnInsertedAmmo -= HandleInsertedAmmo;
     }
 
     private void HandleReloadStart()
@@ -398,6 +427,16 @@ public class CameraGunChannel : MonoBehaviour
         {
             source = this,
             isStart = false,
+            time = Time.time
+        });
+    }
+
+    private void HandleInsertedAmmo(int insertedCount)
+    {
+        CombatEventHub.RaiseReloadInsert(new CombatEventHub.ReloadInsertEvent
+        {
+            source = this,
+            insertedCount = Mathf.Max(0, insertedCount),
             time = Time.time
         });
     }

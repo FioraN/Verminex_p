@@ -2,11 +2,22 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-// 杩戞垬鏀诲嚮鎬墿锛氫細鍦ㄤ竴瀹氳寖鍥村唴杩藉嚮鐜╁锛岃劚鎴樺悗鍥炴渶杩戠殑宸￠€荤偣
+
+// Melee monster that chases the player within range and returns to patrol after losing aggro.
 public class Monster1 : MonsterBase
 {
     private Animator ani;
     private List<Transform> patrolPoints;
+
+    [Header("Attack Audio")]
+    public AudioSource attackAudioSource;
+    public AudioClip[] attackClips;
+    [Min(0f)] public float attackVolume = 1f;
+    public Vector2 attackPitchRange = new Vector2(1f, 1f);
+
+    [Header("Attack Timing")]
+    [Min(0f)] public float readyBeforeAttackDelay = 0.15f;
+
     [Header("Visual Sprites")]
     public SpriteRenderer pictureRenderer;
     public Sprite readySprite;
@@ -14,8 +25,10 @@ public class Monster1 : MonsterBase
 
     private Sprite _defaultSprite;
     private bool _showReadySprite;
+    private bool _wasShowingReadySprite;
+    private float _readyShownAt = -9999f;
 
-    // 鎴戜滑闇€瑕佸紩鐢ㄨ繖涓猅ask锛屼互渚垮湪鑴辨垬鏃堕噸缃畠鐨勭姸鎬佹垨鐩爣
+    // Cached so the patrol task can resume from the nearest patrol point after combat.
     private TaskPatrol patrolTask;
 
     protected override void Start()
@@ -24,13 +37,16 @@ public class Monster1 : MonsterBase
         type = MonsterType.Melee;
         ResolvePictureRenderer();
 
+        if (attackAudioSource == null)
+            attackAudioSource = GetComponent<AudioSource>();
+
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (agent != null) agent.speed = speed;
 
         if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
             transform.position = hit.position;
 
-        if (PatrolPointManager.Instance != null&&isCanPatrol)
+        if (PatrolPointManager.Instance != null && isCanPatrol)
             patrolPoints = PatrolPointManager.Instance.GetAllPatrolPoints().ToList();
         else
             patrolPoints = new List<Transform>();
@@ -38,25 +54,23 @@ public class Monster1 : MonsterBase
         base.Start();
     }
 
-
-    //鑴辨垬
+    // Return to the nearest patrol point after the monster loses the target.
     protected override void OnLostTarget()
     {
         base.OnLostTarget();
 
-        // 鏍稿績閫昏緫锛氳劚鎴樺悗锛屾壘鍒版渶杩戠殑宸￠€荤偣
         if (patrolPoints != null && patrolPoints.Count > 0)
         {
             Transform nearest = GetNearestPatrolPoint();
             if (nearest != null && patrolTask != null)
             {
-                // 鍛婅瘔宸￠€讳换鍔★細涓嬫寮€濮嬪贰閫绘椂锛屽厛鍘昏繖涓渶杩戠殑鐐?
+                // Force patrol to restart from the closest waypoint.
                 patrolTask.SetNextPatrolPoint(nearest);
             }
         }
     }
 
-    //鑾峰彇涓磋繎宸￠€荤偣
+    // Find the patrol point closest to the monster's current position.
     private Transform GetNearestPatrolPoint()
     {
         Transform nearest = null;
@@ -74,22 +88,20 @@ public class Monster1 : MonsterBase
         return nearest;
     }
 
-
-    //璁剧疆琛屼负鏍?
+    // Build the melee monster behavior tree.
     protected override void SetupBehaviorTree()
     {
-        // 1. 鍙椾激
+        // 1. Hurt reaction
         Node hurtNode = new TaskHurt(this, ani);
 
-        // 2. 鎴樻枟妫€娴?(琚縺鎬?OR 鐪嬭浜?
+        // 2. Detection: either already aggroed or the player is inside the vision cone.
         Node checkAggro = new CheckAggro(this);
-        // 濡傛灉璺濈 <= viewRange锛岃€屼笖鍦ㄨ搴﹁寖鍥村唴 瑙嗕负鍙戠幇鏁屼汉
+        // If the player is within view range and angle, treat them as spotted.
         Node checkViewSector = new CheckTargetSector(transform, playerTransform, viewRange, viewAngle);
 
         Node detectionCheck = new Selector(new List<Node> { checkAggro, checkViewSector });
 
-
-        // 鎴樻枟琛屼负
+        // Combat branch
         Node checkAttackRange = new CheckTargetRange(transform, playerTransform, attackRange);
         Node attackAction = new TaskAttackWithMove(this, ani, agent, playerTransform);
         Node chaseAction = new TaskNavMove(agent, playerTransform, ani, this);
@@ -102,11 +114,11 @@ public class Monster1 : MonsterBase
 
         Sequence combatSequence = new Sequence(new List<Node> { detectionCheck, combatBehaviors });
 
-        // 3. 宸￠€?(鍒涘缓瀹炰緥骞朵繚瀛樺紩鐢?
+        // 3. Patrol branch
         patrolTask = new TaskPatrol(transform, patrolPoints, agent, ani, this);
         Node idle5s = new TaskTimedIdle(ani, 5.0f, this);
 
-        // 宸￠€婚€昏緫锛氬厛宸￠€?-> 鍒颁簡浼戞伅 -> 閲嶅
+        // Patrol loop: move to a point, idle, then continue to the next one.
         Sequence patrolIdleSeq = new Sequence(new List<Node>
         {
             patrolTask,
@@ -121,11 +133,10 @@ public class Monster1 : MonsterBase
         });
     }
 
-
-    //鍙互鏀诲嚮
+    // Apply melee damage once the monster is close enough to the player.
     protected override void PerformAttack()
     {
-        // 1. 妫€鏌ョ帺瀹舵槸鍚﹀瓨鍦ㄤ笖瀛樻椿
+        // Validate the target and fetch the player's health component.
         if (playerTransform == null) return;
 
         PlayerVitals playerVitals = playerTransform.GetComponent<PlayerVitals>();
@@ -145,7 +156,24 @@ public class Monster1 : MonsterBase
 
     public override void SetAttackReadyVisual(bool active)
     {
-        _showReadySprite = active && !isDead;
+        bool shouldShowReady = active && !isDead;
+        if (shouldShowReady && !_showReadySprite)
+            _readyShownAt = Time.time;
+
+        _showReadySprite = shouldShowReady;
+    }
+
+    protected override bool TryPerformAttack()
+    {
+        if (!_showReadySprite)
+            return false;
+
+        float requiredDelay = Mathf.Max(0f, readyBeforeAttackDelay);
+        if (Time.time - _readyShownAt < requiredDelay)
+            return false;
+
+        PerformAttack();
+        return true;
     }
 
     private void LateUpdate()
@@ -155,11 +183,18 @@ public class Monster1 : MonsterBase
 
         if (isDead && deathSprite != null)
         {
+            _wasShowingReadySprite = false;
             pictureRenderer.sprite = deathSprite;
             return;
         }
 
-        if (_showReadySprite && readySprite != null)
+        bool isShowingReadySprite = _showReadySprite && readySprite != null;
+        if (isShowingReadySprite && !_wasShowingReadySprite)
+            PlayAttackSound();
+
+        _wasShowingReadySprite = isShowingReadySprite;
+
+        if (isShowingReadySprite)
         {
             pictureRenderer.sprite = readySprite;
             return;
@@ -199,7 +234,50 @@ public class Monster1 : MonsterBase
         return true;
     }
 
+    private void PlayAttackSound()
+    {
+        if (attackAudioSource == null)
+            return;
 
+        AudioClip clip = ChooseRandomClip(attackClips);
+        if (clip == null)
+            return;
 
+        float originalPitch = attackAudioSource.pitch;
+        attackAudioSource.pitch = Random.Range(
+            Mathf.Min(attackPitchRange.x, attackPitchRange.y),
+            Mathf.Max(attackPitchRange.x, attackPitchRange.y));
+        attackAudioSource.PlayOneShot(clip, Mathf.Max(0f, attackVolume));
+        attackAudioSource.pitch = originalPitch;
+    }
 
+    private static AudioClip ChooseRandomClip(AudioClip[] clips)
+    {
+        if (clips == null || clips.Length == 0)
+            return null;
+
+        int validCount = 0;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] != null)
+                validCount++;
+        }
+
+        if (validCount == 0)
+            return null;
+
+        int pick = Random.Range(0, validCount);
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] == null)
+                continue;
+
+            if (pick == 0)
+                return clips[i];
+
+            pick--;
+        }
+
+        return null;
+    }
 }

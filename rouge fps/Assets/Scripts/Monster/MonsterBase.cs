@@ -5,8 +5,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(MonsterHealth))]
 public class MonsterBase : MonoBehaviour
 {
-
-   public bool isCanPatrol = true;
+    public bool isCanPatrol = true;
 
     [Header("Base Stats")]
     public MonsterType type;
@@ -48,10 +47,8 @@ public class MonsterBase : MonoBehaviour
     private Color _hitFlashOriginalColor = Color.white;
     private bool _hasHitFlashOriginalColor;
 
+    public bool isDie = false;
 
-    public bool isDie=false;
-
-    
     protected virtual void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -132,7 +129,7 @@ public class MonsterBase : MonoBehaviour
 
         if (isDie)
         {
-            //看向玩家方向
+            // Keep the corpse facing the player.
             if (playerTransform != null)
             {
                 Vector3 lookPos = playerTransform.position;
@@ -212,12 +209,20 @@ public class MonsterBase : MonoBehaviour
                 transform.LookAt(lookPos);
             }
 
-            PerformAttack();
+            if (!TryPerformAttack())
+                return false;
+
             lastAttackTime = Time.time;
             return true;
         }
 
         return false;
+    }
+
+    protected virtual bool TryPerformAttack()
+    {
+        PerformAttack();
+        return true;
     }
 
     protected virtual void PerformAttack() { }
@@ -264,13 +269,11 @@ public class MonsterBase : MonoBehaviour
                 StopCoroutine(_lockDeathAnimationRoutine);
 
             _lockDeathAnimationRoutine = StartCoroutine(LockDeathAnimationOnLastFrame(ani));
-            isDie= true; 
-
-
+            isDie = true;
         }
         else
         {
-           // Destroy(gameObject);
+            // Destroy(gameObject);
         }
     }
 

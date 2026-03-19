@@ -20,9 +20,9 @@ public class GunAmmo : MonoBehaviour
     [Min(0f)] public float insertOneTime = 0.45f;
     [Min(0f)] public float reloadEndTime = 0.25f;
 
-    [Header("PerBullet Ä¬ÈÏ²åµ¯ÊıÁ¿")]
+    [Header("PerBullet é»˜è®¤æ’å¼¹æ•°é‡")]
     [Min(1)]
-    [Tooltip("Ä¬ÈÏ 1¡£ÈôÃ»ÓĞ Perk ¸²¸Ç£¬±¾´Î InsertOneNow »á²åÈë¸ÃÊıÁ¿¡£")]
+    [Tooltip("é»˜è®¤ 1ã€‚è‹¥æ²¡æœ‰ Perk è¦†ç›–ï¼Œæœ¬æ¬¡ InsertOneNow ä¼šæ’å…¥è¯¥æ•°é‡ã€‚")]
     public int insertCountPerStep = 1;
 
     public bool IsReloading => _isReloading;
@@ -34,11 +34,12 @@ public class GunAmmo : MonoBehaviour
     public System.Action<int, int> OnAmmoChanged;
     public System.Action OnReloadStart;
     public System.Action OnReloadEnd;
+    public System.Action<int> OnInsertedAmmo;
 
     /// <summary>
-    /// ²åµ¯ÊıÁ¿¸²¸Ç¹³×Ó£¨½öÓÃÓÚ PerBullet ²åµ¯£©£º
-    /// - InsertOneNow() ÄÚ²¿»áÏÈÈ¡ insertCountPerStep
-    /// - È»ºóÈÃ¶©ÔÄÕßÓĞ»ú»á¸²¸Ç±¾´Î count£¨±ÈÈç½»Ìæ 1/2£©
+    /// æ’å¼¹æ•°é‡è¦†ç›–é’©å­ï¼ˆä»…ç”¨äº PerBullet æ’å¼¹ï¼‰ï¼š
+    /// - InsertOneNow() å†…éƒ¨ä¼šå…ˆå– insertCountPerStep
+    /// - ç„¶åè®©è®¢é˜…è€…æœ‰æœºä¼šè¦†ç›–æœ¬æ¬¡ countï¼ˆæ¯”å¦‚äº¤æ›¿ 1/2ï¼‰
     /// </summary>
     public delegate void QueryInsertCountHandler(GunAmmo ammo, ref int count);
     public event QueryInsertCountHandler OnQueryInsertCount;
@@ -80,7 +81,7 @@ public class GunAmmo : MonoBehaviour
 
     public void CancelReloadIfPerBullet()
     {
-        // CameraGunDual µÄĞ­³Ì»á´¦ÀíÍ£Ö¹£¬ÕâÀï±£³ÖÓïÒå½Ó¿Ú¼´¿É
+        // CameraGunDual çš„åç¨‹ä¼šå¤„ç†åœæ­¢ï¼Œè¿™é‡Œä¿æŒè¯­ä¹‰æ¥å£å³å¯
     }
 
     public void ApplyMagazineReloadNow()
@@ -103,10 +104,10 @@ public class GunAmmo : MonoBehaviour
     {
         if (!CanInsertOne()) return;
 
-        // Ä¬ÈÏ²åµ¯ÊıÁ¿
+        // é»˜è®¤æ’å¼¹æ•°é‡
         int count = Mathf.Max(1, insertCountPerStep);
 
-        // ÔÊĞí Perk ¸²¸Ç±¾´Î²åµ¯ÊıÁ¿£¨ÓÃÓÚÊµÏÖ 1/2 ½»Ìæ¡¢»òÆäËüÂß¼­£©
+        // å…è®¸ Perk è¦†ç›–æœ¬æ¬¡æ’å¼¹æ•°é‡ï¼ˆç”¨äºå®ç° 1/2 äº¤æ›¿ã€æˆ–å…¶å®ƒé€»è¾‘ï¼‰
         OnQueryInsertCount?.Invoke(this, ref count);
         count = Mathf.Max(1, count);
 
@@ -117,6 +118,7 @@ public class GunAmmo : MonoBehaviour
         ammoInMag += take;
         ammoReserve -= take;
         NotifyAmmo();
+        OnInsertedAmmo?.Invoke(take);
     }
 
     private void NotifyAmmo()

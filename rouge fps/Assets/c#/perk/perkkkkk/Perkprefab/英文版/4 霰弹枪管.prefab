@@ -48,8 +48,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pelletsPerShot: 8
-  keepTotalDamageConstant: 1
+  keepTotalDamageConstant: 0
   totalDamageMultiplier: 1
+  overrideDamage: 0
+  damage: 5
   overrideMaxRange: 1
   maxRange: 15
   overrideBulletSpeed: 0

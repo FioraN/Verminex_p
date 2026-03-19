@@ -212,6 +212,9 @@ public class AutoAimLockOn : MonoBehaviour
             if (c.GetComponentInParent<IDamageable>() == null)
                 continue;
 
+            if (!IsAliveEnemy(c))
+                continue;
+
             if (!IsTargetValid(c))
                 continue;
 
@@ -240,6 +243,9 @@ public class AutoAimLockOn : MonoBehaviour
         if (c == null) return false;
 
         if (c.GetComponentInParent<IDamageable>() == null)
+            return false;
+
+        if (!IsAliveEnemy(c))
             return false;
 
         Vector3 origin = viewTransform.position;
@@ -271,6 +277,22 @@ public class AutoAimLockOn : MonoBehaviour
             if (ht != c.transform && ht.root != c.transform.root)
                 return false;
         }
+
+        return true;
+    }
+
+    private static bool IsAliveEnemy(Collider c)
+    {
+        if (c == null)
+            return false;
+
+        MonsterHealth monsterHealth = c.GetComponentInParent<MonsterHealth>();
+        if (monsterHealth != null)
+            return !monsterHealth.IsDead;
+
+        MonsterBase monsterBase = c.GetComponentInParent<MonsterBase>();
+        if (monsterBase != null)
+            return monsterBase.gameObject.activeInHierarchy;
 
         return true;
     }

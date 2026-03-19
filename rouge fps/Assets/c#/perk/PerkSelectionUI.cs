@@ -323,7 +323,7 @@ public sealed class PerkSelectionUI : MonoBehaviour
             card.SetSelectableVisual(selectable);
 
             if (selectable && card.selectButton != null)
-                card.selectButton.onClick.AddListener(() => ShowGunSelect(capturedPrefab));
+                card.selectButton.onClick.AddListener(() => HandlePerkCardSelected(capturedPrefab));
 
             _spawnedCards.Add(card);
         }
@@ -646,17 +646,32 @@ public sealed class PerkSelectionUI : MonoBehaviour
 
     private void HandleGunASelected()
     {
+        PlayButtonClickSound();
         OnGunSelected(0);
     }
 
     private void HandleGunBSelected()
     {
+        PlayButtonClickSound();
         OnGunSelected(1);
     }
 
     private void HandleBackSelected()
     {
+        PlayButtonClickSound();
         ShowCardList(forceRefresh: false);
+    }
+
+    private void HandlePerkCardSelected(GameObject perkPrefab)
+    {
+        PlayButtonClickSound();
+        ShowGunSelect(perkPrefab);
+    }
+
+    private void PlayButtonClickSound()
+    {
+        if (PlayerEventAudioPlayer.Instance != null)
+            PlayerEventAudioPlayer.Instance.PlayPerkUiClick();
     }
 
     private static RectTransform NewRT(string name, Transform parent)

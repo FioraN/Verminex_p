@@ -2,18 +2,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-// 条件节点：检测是否有目标在范围内
+// Condition node: succeeds when the target is inside the specified range.
 public class CheckTargetRange : Node
 {
     private readonly Transform _transform;
     private readonly Transform _target;
-    private readonly float _sqrRange; // 存储距离的平方，用于比较
+    private readonly float _sqrRange; // Store the squared range for cheaper distance checks.
 
     public CheckTargetRange(Transform transform, Transform target, float range)
     {
         _transform = transform;
         _target = target;
-        _sqrRange = range * range; // 预计算平方值
+        _sqrRange = range * range; // Precompute the squared range once.
     }
 
     public override NodeState Evaluate()
@@ -25,14 +25,13 @@ public class CheckTargetRange : Node
     }
 }
 
-
-// 条件节点：检测目标是否在扇形范围内（视野检测）
+// Condition node: succeeds when the target is inside the view cone.
 public class CheckTargetSector : Node
 {
     private readonly Transform _transform;
     private readonly Transform _target;
-    private readonly float _sqrRange; // 距离平方
-    private readonly float _halfAngle; // 半角（比如视野90度，这里存45度）
+    private readonly float _sqrRange; // Squared view range.
+    private readonly float _halfAngle; // Half of the total view angle.
 
     public CheckTargetSector(Transform transform, Transform target, float viewRange, float viewAngle)
     {
@@ -48,12 +47,12 @@ public class CheckTargetSector : Node
 
         Vector3 dirToTarget = _target.position - _transform.position;
 
-        // 1. 先检查距离 (SqrMagnitude 比 Distance 快)
+        // 1. Check distance first. SqrMagnitude is cheaper than Distance.
         if (dirToTarget.sqrMagnitude > _sqrRange)
             return NodeState.Failure;
 
-        // 2. 再检查角度
-        // Vector3.Angle 返回两个向量的夹角(0~180)
+        // 2. Then check the angle between forward and the target direction.
+        // Vector3.Angle returns a value in the 0 to 180 degree range.
         float angle = Vector3.Angle(_transform.forward, dirToTarget);
 
         if (angle <= _halfAngle)
@@ -65,8 +64,7 @@ public class CheckTargetSector : Node
     }
 }
 
-
-// 动作节点：使用 NavMesh 移动
+// Action node: move toward the target with NavMesh.
 public class TaskNavMove : Node
 {
     private readonly NavMeshAgent _agent;
@@ -81,7 +79,7 @@ public class TaskNavMove : Node
         _target = target;
         _ani = ani;
         _monster = monster;
-        // 缓存动画参数ID，提升性能
+        // Cache the animator hash to avoid repeated string lookups.
         _isMovingHash = Animator.StringToHash("IsMoving");
     }
 
@@ -89,33 +87,32 @@ public class TaskNavMove : Node
     {
         if (_target == null) return NodeState.Failure;
 
-        // 检查 NavMeshAgent 是否有效
+        // Abort if the NavMeshAgent is not ready to move.
         if (_agent == null || !_agent.isActiveAndEnabled || !_agent.isOnNavMesh)
         {
             return NodeState.Failure;
         }
 
-        // 确保 NavMeshAgent 没有被手动停止
+        // Make sure movement is resumed before assigning a destination.
         if (_agent.isStopped)
         {
             _agent.isStopped = false;
         }
 
-        // 持续更新目的地（追踪目标）
+        // Continuously update the destination to track the target.
         _agent.SetDestination(_target.position);
 
         Debug.Log(_target.position);
 
-
-        // 播放移动动画
+        // Play the movement animation while chasing.
         if (_ani != null) _ani.SetBool(_isMovingHash, true);
 
-        // 始终返回 Running，保持持续追踪
+        // Keep returning Running while the target is being chased.
         return NodeState.Running;
     }
 }
 
-// 动作节点：边移动边攻击（攻击范围内的行为）
+// Action node: stop near the target, show ready state, and trigger attacks.
 public class TaskAttackWithMove : Node
 {
     private readonly MonsterBase _monster;
@@ -124,10 +121,10 @@ public class TaskAttackWithMove : Node
     private readonly Transform _target;
 
     private float _lastAttackTime;
-    // 如果你的攻击动画很长，建议增加这个值，或者从外部传入
+    // Duration used to keep the monster locked during the attack animation.
     private readonly float _attackAnimationDuration = 1.2f;
 
-    // 缓存动画参数ID
+    // Cache the animator hash for repeated use.
     private readonly int _isMovingHash;
 
     public TaskAttackWithMove(MonsterBase monster, Animator ani, NavMeshAgent agent, Transform target)
@@ -136,47 +133,50 @@ public class TaskAttackWithMove : Node
         _ani = ani;
         _agent = agent;
         _target = target;
-        _lastAttackTime = -9999f; // 初始化为一个很久以前的时间
+        _lastAttackTime = -9999f; // Initialize to a very old time so the first attack is allowed immediately.
         _isMovingHash = Animator.StringToHash("IsMoving");
     }
 
     public override NodeState Evaluate()
     {
-        _monster?.SetAttackReadyVisual(false);
-        if (_target == null) return NodeState.Failure;
-        _monster.SetAttackReadyVisual(false);
-        if (_agent == null || !_agent.isActiveAndEnabled || !_agent.isOnNavMesh) return NodeState.Failure;
+        if (_target == null)
+        {
+            _monster?.SetAttackReadyVisual(false);
+            return NodeState.Failure;
+        }
 
-        // 计算当前是否处于攻击后的僵直期间
+        if (_agent == null || !_agent.isActiveAndEnabled || !_agent.isOnNavMesh)
+        {
+            _monster?.SetAttackReadyVisual(false);
+            return NodeState.Failure;
+        }
+
+        // Stay in the attack lockout window while the attack animation is still playing.
         bool inAttackAnimation = (Time.time - _lastAttackTime) < _attackAnimationDuration;
 
         if (inAttackAnimation)
         {
-            // 处于攻击硬直中：强制停止移动
+            // Freeze movement while the attack animation is still active.
             _monster.SetAttackReadyVisual(false);
             SetStoppedState(true);
             return NodeState.Running;
         }
 
-        // 尝试执行攻击逻辑（内部检查距离、冷却等条件）
+        // Try to attack. The monster handles cooldown, delay, and range checks internally.
         bool justAttacked = _monster.TryAttack();
 
         if (justAttacked)
         {
             _lastAttackTime = Time.time;
-            // 攻击触发瞬间：立即停止
+            // Stop immediately after the attack is triggered.
             _monster.SetAttackReadyVisual(false);
             SetStoppedState(true);
-            // 这里可以加一个朝向修正，确保攻击时正对目标
+            // Force the monster to face the target during the attack.
             _monster.transform.LookAt(new Vector3(_target.position.x, _monster.transform.position.y, _target.position.z));
-
-          
-
-
         }
         else
         {
-            // 没攻击且不在硬直中 -> 恢复移动追踪
+            // Not attacking right now, so keep chasing and show the ready visual.
             _monster.SetAttackReadyVisual(true);
             SetStoppedState(false);
             _agent.SetDestination(_target.position);
@@ -192,8 +192,8 @@ public class TaskAttackWithMove : Node
             _agent.isStopped = isStopped;
             if (isStopped)
             {
-                _agent.velocity = Vector3.zero; // 物理上清零速度，防止滑步
-                _agent.ResetPath(); // 清除路径，确保彻底停下
+                _agent.velocity = Vector3.zero; // Clear velocity to avoid sliding.
+                _agent.ResetPath(); // Clear the current path to force a full stop.
             }
         }
 
@@ -204,7 +204,7 @@ public class TaskAttackWithMove : Node
     }
 }
 
-// 动作节点：待机
+// Action node: idle without moving.
 public class TaskIdle : Node
 {
     private readonly Animator _ani;
@@ -226,7 +226,7 @@ public class TaskIdle : Node
     }
 }
 
-// 行为节点：巡逻
+// Action node: patrol between waypoints.
 public class TaskPatrol : Node
 {
     private Transform _transform;
@@ -238,7 +238,7 @@ public class TaskPatrol : Node
     private float _waitTimer = 0f;
     private bool _isWaiting = false;
 
-    // 添加一个标记，确保只在切换点时设置一次目的地
+    // Prevent SetDestination from being called every frame when the destination is unchanged.
     private bool _destinationSet = false;
 
     private Transform _forcedTarget;
@@ -256,7 +256,7 @@ public class TaskPatrol : Node
     {
         _forcedTarget = point;
         _isWaiting = false;
-        _destinationSet = false; // 强制更新目标
+        _destinationSet = false; // Force the patrol destination to refresh.
     }
 
     public override NodeState Evaluate()
@@ -264,7 +264,7 @@ public class TaskPatrol : Node
         _monster?.SetAttackReadyVisual(false);
         if (_waypoints == null || _waypoints.Count == 0) return NodeState.Failure;
 
-        // 1. 处理强制目标点（脱战返回逻辑）
+        // 1. Consume a forced patrol point, usually after returning from combat.
         if (_forcedTarget != null)
         {
             int index = _waypoints.IndexOf(_forcedTarget);
@@ -273,28 +273,28 @@ public class TaskPatrol : Node
             _forcedTarget = null;
             _isWaiting = false;
             _waitTimer = 0f;
-            _destinationSet = false; // 触发重新寻路
+            _destinationSet = false; // Force a new path calculation.
         }
 
-        // 2. 等待逻辑
+        // 2. Wait at the current waypoint.
         if (_isWaiting)
         {
             if (_ani) _ani.SetBool("IsMoving", false);
-            if (_agent.isActiveAndEnabled) _agent.isStopped = true; // 确保停止
+            if (_agent.isActiveAndEnabled) _agent.isStopped = true; // Keep the agent stopped while waiting.
 
             _waitTimer += Time.deltaTime;
             if (_waitTimer > 1.5f)
             {
-                // 等待结束，切换到下一个点
+                // Waiting finished, move on to the next waypoint.
                 _isWaiting = false;
                 _waitTimer = 0f;
                 _currentWaypointIndex = (_currentWaypointIndex + 1) % _waypoints.Count;
-                _destinationSet = false; // 标记需要设置新目的地
+                _destinationSet = false; // Mark the new waypoint as needing a destination update.
             }
             return NodeState.Running;
         }
 
-        // 3. 设置移动目标 (仅在需要时调用一次)
+        // 3. Set the next patrol destination once.
         if (!_destinationSet)
         {
             Transform wp = _waypoints[_currentWaypointIndex];
@@ -303,12 +303,11 @@ public class TaskPatrol : Node
                 _agent.SetDestination(wp.position);
                 _agent.isStopped = false;
                 if (_ani) _ani.SetBool("IsMoving", true);
-                _destinationSet = true; // 标记已设置，避免Update中重复调用
+                _destinationSet = true; // Avoid resetting the same destination every frame.
             }
         }
 
-        // 4. 检测是否到达
-        // 增加 pathPending 检查，防止刚 SetDestination 还没算好路径就误判距离为 0
+        // 4. Detect arrival. pathPending prevents false positives right after SetDestination.
         if (_agent != null && _agent.isActiveAndEnabled && _agent.isOnNavMesh)
         {
             bool reachedDestination =
@@ -331,12 +330,13 @@ public class TaskPatrol : Node
         return NodeState.Running;
     }
 }
-// 行为节点：受伤反应
+
+// Action node: play the hurt reaction for a short duration.
 public class TaskHurt : Node
 {
     private MonsterBase _monster;
     private Animator _ani;
-    private float _duration = 0.5f; // 受伤硬直时间
+    private float _duration = 0.5f; // Hurt stun duration.
     private float _timer = 0f;
     private bool _started = false;
 
@@ -348,21 +348,20 @@ public class TaskHurt : Node
 
     public override NodeState Evaluate()
     {
-        _monster.SetAttackReadyVisual(false);
-
-        // 如果没有处于受伤状态，返回失败，让后续节点运行
         if (!_monster.isHurt)
         {
             _started = false;
             return NodeState.Failure;
         }
 
+        _monster.SetAttackReadyVisual(false);
+
         if (!_started)
         {
             _started = true;
             _timer = 0f;
-            if (_ani) _ani.SetTrigger("Hit"); // 触发受伤动画
-            // 停止移动
+            if (_ani) _ani.SetTrigger("Hit"); // Trigger the hurt animation once.
+            // Stop movement while the hurt reaction is active.
             if (_monster.agent != null && _monster.agent.isOnNavMesh)
                 _monster.agent.isStopped = true;
         }
@@ -370,8 +369,8 @@ public class TaskHurt : Node
         _timer += Time.deltaTime;
         if (_timer >= _duration)
         {
-            _monster.isHurt = false; // 恢复状态
-            _monster.hasAggro = true; // 激怒：由于是受击，强制进入追踪模式
+            _monster.isHurt = false; // Clear the hurt state after the stun ends.
+            _monster.hasAggro = true; // Being hit forces the monster back into combat.
             _started = false;
             return NodeState.Success;
         }
@@ -380,7 +379,7 @@ public class TaskHurt : Node
     }
 }
 
-// 行为节点：带时间的待机
+// Action node: idle for a fixed amount of time.
 public class TaskTimedIdle : Node
 {
     private Animator _ani;
@@ -404,14 +403,14 @@ public class TaskTimedIdle : Node
         _timer += Time.deltaTime;
         if (_timer >= _duration)
         {
-            _timer = 0f; // 重置计时器以便下次进入
-            return NodeState.Success; // 待机结束
+            _timer = 0f; // Reset the timer so the node can be reused next time.
+            return NodeState.Success; // Timed idle finished.
         }
-        return NodeState.Running; // 正在待机
+        return NodeState.Running; // Still idling.
     }
 }
 
-// 检测是否有仇恨（受击后强制追踪）
+// Condition node: succeeds when the monster already has aggro.
 public class CheckAggro : Node
 {
     private MonsterBase _monster;

@@ -2,18 +2,18 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Õ½¶·ÊÂ¼ş×ÜÏß£º°Ñ¡°¿ª»ğ/ÃüÖĞ/»÷É±/»»µ¯/¼¼ÄÜ¼ü¡±µÈÊÂ¼şÍ³Ò»Å×³öÀ´£¬Perk ÏµÍ³Ö»¶©ÔÄÊÂ¼ş¼´¿É¡£
+/// æˆ˜æ–—äº‹ä»¶æ€»çº¿ï¼šæŠŠâ€œå¼€ç«/å‘½ä¸­/å‡»æ€/æ¢å¼¹/æŠ€èƒ½é”®â€ç­‰äº‹ä»¶ç»Ÿä¸€æŠ›å‡ºæ¥ï¼ŒPerk ç³»ç»Ÿåªè®¢é˜…äº‹ä»¶å³å¯ã€‚
 /// </summary>
 public static class CombatEventHub
 {
-    // ====== Êı¾İ½á¹¹ ======
+    // ====== æ•°æ®ç»“æ„ ======
 
     public struct FireEvent
     {
-        public CameraGunChannel source;   // ÄÄ°ÑÇ¹·¢Éä
-        public int pellets;               // µ¯ÍèÊıÁ¿£¨ö±µ¯/Ë«·¢£©
-        public bool isProjectile;         // ÊÇ·ñÎªÅ×ÉäÎïÄ£Ê½
-        public float time;                // Ê±¼ä´Á
+        public CameraGunChannel source;   // å“ªæŠŠæªå‘å°„
+        public int pellets;               // å¼¹ä¸¸æ•°é‡ï¼ˆéœ°å¼¹/åŒå‘ï¼‰
+        public bool isProjectile;         // æ˜¯å¦ä¸ºæŠ›å°„ç‰©æ¨¡å¼
+        public float time;                // æ—¶é—´æˆ³
     }
 
     public struct HitEvent
@@ -50,23 +50,32 @@ public static class CombatEventHub
         public float time;
     }
 
-    public struct AbilityEvent
+    public struct ReloadInsertEvent
     {
-        public KeyCode key;               // Ä¿Ç°ÏÈÓÃ F
+        public CameraGunChannel source;
+        public int insertedCount;
         public float time;
     }
 
-    // ====== ÊÂ¼ş ======
+    public struct AbilityEvent
+    {
+        public KeyCode key;               // ç›®å‰å…ˆç”¨ F
+        public float time;
+    }
+
+    // ====== äº‹ä»¶ ======
     public static event Action<FireEvent> OnFire;
     public static event Action<HitEvent> OnHit;
     public static event Action<KillEvent> OnKill;
     public static event Action<ReloadEvent> OnReload;
+    public static event Action<ReloadInsertEvent> OnReloadInsert;
     public static event Action<AbilityEvent> OnAbility;
 
-    // ====== Raise ·½·¨£¨ÓÉÎäÆ÷/×Óµ¯/ÉúÃüÏµÍ³µ÷ÓÃ£© ======
+    // ====== Raise æ–¹æ³•ï¼ˆç”±æ­¦å™¨/å­å¼¹/ç”Ÿå‘½ç³»ç»Ÿè°ƒç”¨ï¼‰ ======
     public static void RaiseFire(in FireEvent e) => OnFire?.Invoke(e);
     public static void RaiseHit(in HitEvent e) => OnHit?.Invoke(e);
     public static void RaiseKill(in KillEvent e) => OnKill?.Invoke(e);
     public static void RaiseReload(in ReloadEvent e) => OnReload?.Invoke(e);
+    public static void RaiseReloadInsert(in ReloadInsertEvent e) => OnReloadInsert?.Invoke(e);
     public static void RaiseAbility(in AbilityEvent e) => OnAbility?.Invoke(e);
 }

@@ -13,6 +13,11 @@ public sealed class Perk_ShotgunMode : GunPerkModifierBase
     [Min(0f)] public float totalDamageMultiplier = 1f;
 
     [Header("Gun Stats Override")]
+    [Tooltip("Whether to override the weapon's final damage while this perk is active.")]
+    public bool overrideDamage = false;
+
+    [Min(0f)] public float damage = 10f;
+
     [Tooltip("Whether to override the weapon's final max range while this perk is active.")]
     public bool overrideMaxRange = false;
 
@@ -110,6 +115,13 @@ public sealed class Perk_ShotgunMode : GunPerkModifierBase
                 mult = totalDamageMultiplier;
 
             dmg.mul *= Mathf.Max(0f, mult);
+
+            if (overrideDamage)
+            {
+                float baseDamage = ctx != null ? Mathf.Max(0f, ctx.baseDamage) : Mathf.Max(0f, source.baseDamage);
+                OverrideStatToValue(ref dmg, baseDamage, damage);
+            }
+
             stacks[GunStat.Damage] = dmg;
         }
 

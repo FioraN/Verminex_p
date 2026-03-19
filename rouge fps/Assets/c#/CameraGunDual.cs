@@ -143,13 +143,17 @@ public class CameraGunDual : MonoBehaviour
         if (_reloadCo != null) return;
         if (!HasValid()) return;
 
+        bool needP = primary != null && primary.ammo != null && primary.ammo.NeedsReload();
+        bool needS = secondary != null && secondary.ammo != null && secondary.ammo.NeedsReload();
+        if (!needP && !needS) return;
+
         if (AnyFireHeldRaw())
             _ignoreFireInterruptUntilReleasedOnce = true;
 
         _autoReloadPending = false;
         _reloadCo = StartCoroutine(LinkedReloadRoutine(
-            reloadA: true,
-            reloadB: true,
+            reloadA: needP,
+            reloadB: needS,
             applyPriority: true   // manual always follows priority policy
         ));
     }
@@ -228,11 +232,17 @@ public class CameraGunDual : MonoBehaviour
 
     private IEnumerator LinkedReloadRoutine(bool reloadA, bool reloadB, bool applyPriority)
     {
-        GunAmmo a = primary.ammo;
-        GunAmmo b = secondary.ammo;
+        GunAmmo a = primary != null ? primary.ammo : null;
+        GunAmmo b = secondary != null ? secondary.ammo : null;
 
-        bool aActive = reloadA;
-        bool bActive = reloadB;
+        bool aActive = reloadA && a != null && a.NeedsReload();
+        bool bActive = reloadB && b != null && b.NeedsReload();
+
+        if (!aActive && !bActive)
+        {
+            _reloadCo = null;
+            yield break;
+        }
 
         bool aMag = aActive && (a.reloadType == GunAmmo.ReloadType.Magazine);
         bool bMag = bActive && (b.reloadType == GunAmmo.ReloadType.Magazine);

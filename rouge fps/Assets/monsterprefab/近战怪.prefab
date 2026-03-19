@@ -133,6 +133,134 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!1 &1255747616583931228
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3786669426574692134}
+  - component: {fileID: 2285901538133552200}
+  m_Layer: 0
+  m_Name: Audio Source
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3786669426574692134
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255747616583931228}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7533871600269914298}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!82 &2285901538133552200
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255747616583931228}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 20
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &2958912565457573657
 GameObject:
   m_ObjectHideFlags: 0
@@ -252,7 +380,7 @@ GameObject:
   - component: {fileID: 7390659564980509617}
   - component: {fileID: 737144669399594980}
   - component: {fileID: 3926661662066873495}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -372,7 +500,7 @@ GameObject:
   - component: {fileID: 2574433380483067225}
   - component: {fileID: 7314245781197984490}
   - component: {fileID: 7363658038160993602}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: body
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -520,6 +648,7 @@ Transform:
   - {fileID: 7647493021255203613}
   - {fileID: 7805531272877791337}
   - {fileID: 537598315835600678}
+  - {fileID: 3786669426574692134}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &7785725417741405087
@@ -650,6 +779,12 @@ MonoBehaviour:
   agent: {fileID: 0}
   playerTransform: {fileID: 0}
   isDie: 0
+  attackAudioSource: {fileID: 2285901538133552200}
+  attackClips:
+  - {fileID: 8300000, guid: a70e0a2fca83fda47b83aca9dae1af84, type: 3}
+  attackVolume: 1
+  attackPitchRange: {x: 1, y: 1}
+  readyBeforeAttackDelay: 0.15
   pictureRenderer: {fileID: 4459987220869883653}
   readySprite: {fileID: 21300000, guid: a78475fcc5c2b6d4ca369d63c74f1908, type: 3}
   deathSprite: {fileID: 21300000, guid: de6b8178330e9234e923d72048f2238a, type: 3}
@@ -670,9 +805,9 @@ MonoBehaviour:
   isDeadDebug: 0
   experienceOrbPrefab: {fileID: 7966941744068520207, guid: d20c9f1dd2e765f42afa6ead2f8fc8d0,
     type: 3}
-  totalExperience: 10
-  minOrbCount: 7
-  maxOrbCount: 9
+  totalExperience: 5
+  minOrbCount: 5
+  maxOrbCount: 3
   experienceSpawnOffset: {x: 0, y: 1, z: 0}
   experienceScatterRadius: 0.6
   autoFindHitUI: 1

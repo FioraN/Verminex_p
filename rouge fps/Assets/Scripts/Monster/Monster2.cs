@@ -6,6 +6,13 @@ using UnityEngine.AI;
 public class Monster2 : MonsterBase
 {
     private Animator ani;
+
+    [Header("Attack Audio")]
+    public AudioSource attackAudioSource;
+    public AudioClip[] attackClips;
+    [Min(0f)] public float attackVolume = 1f;
+    public Vector2 attackPitchRange = new Vector2(1f, 1f);
+
     [Header("Visual Sprites")]
     public SpriteRenderer pictureRenderer;
     public Sprite deathSprite;
@@ -36,6 +43,9 @@ public class Monster2 : MonsterBase
         ani = GetComponent<Animator>();
         type = MonsterType.Ranged;
         ResolvePictureRenderer();
+
+        if (attackAudioSource == null)
+            attackAudioSource = GetComponent<AudioSource>();
 
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (agent != null) agent.speed = speed;
@@ -122,6 +132,7 @@ public class Monster2 : MonsterBase
     {
         if (playerTransform == null) return;
         if (ani != null) ani.SetTrigger("Attack");
+        PlayAttackSound();
 
         if (projectilePrefab == null || firePoint == null)
         {
@@ -188,6 +199,11 @@ public class Monster2 : MonsterBase
         }
     }
 
+    public override void SetAttackReadyVisual(bool active)
+    {
+        // Monster2 attack audio is tied to projectile firing, not ready state.
+    }
+
     private Vector3 GetPlayerBodyCenter()
     {
         if (playerTransform == null)
@@ -251,5 +267,52 @@ public class Monster2 : MonsterBase
             _defaultSprite = pictureRenderer.sprite;
 
         return true;
+    }
+
+    private void PlayAttackSound()
+    {
+        if (attackAudioSource == null)
+            return;
+
+        AudioClip clip = ChooseRandomClip(attackClips);
+        if (clip == null)
+            return;
+
+        float originalPitch = attackAudioSource.pitch;
+        attackAudioSource.pitch = Random.Range(
+            Mathf.Min(attackPitchRange.x, attackPitchRange.y),
+            Mathf.Max(attackPitchRange.x, attackPitchRange.y));
+        attackAudioSource.PlayOneShot(clip, Mathf.Max(0f, attackVolume));
+        attackAudioSource.pitch = originalPitch;
+    }
+
+    private static AudioClip ChooseRandomClip(AudioClip[] clips)
+    {
+        if (clips == null || clips.Length == 0)
+            return null;
+
+        int validCount = 0;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] != null)
+                validCount++;
+        }
+
+        if (validCount == 0)
+            return null;
+
+        int pick = Random.Range(0, validCount);
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] == null)
+                continue;
+
+            if (pick == 0)
+                return clips[i];
+
+            pick--;
+        }
+
+        return null;
     }
 }

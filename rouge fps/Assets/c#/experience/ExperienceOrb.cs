@@ -232,8 +232,7 @@ public sealed class ExperienceOrb : MonoBehaviour
         if (!matchesTag)
             return;
 
-        receiver.AddExperience(experienceValue);
-        Destroy(gameObject);
+        Collect(receiver);
     }
 
     private void CollectTarget()
@@ -244,7 +243,25 @@ public sealed class ExperienceOrb : MonoBehaviour
         if (_targetExperience == null)
             return;
 
-        _targetExperience.AddExperience(experienceValue);
+        Collect(_targetExperience);
+    }
+
+    private void Collect(PlayerExperience receiver)
+    {
+        if (receiver == null)
+            return;
+
+        receiver.AddExperience(experienceValue);
+
+        ExperienceEventHub.RaiseOrbCollected(new ExperienceEventHub.OrbCollectedEvent
+        {
+            receiver = receiver,
+            orb = this,
+            experienceValue = experienceValue,
+            worldPosition = transform.position,
+            time = Time.time
+        });
+
         Destroy(gameObject);
     }
 
